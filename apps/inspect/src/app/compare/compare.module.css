@@ -1,0 +1,61 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.pickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  align-items: center;
+}
+.pickers select {
+  max-width: 26rem;
+  text-overflow: ellipsis;
+}
+.body {
+  display: grid;
+  grid-template-columns: minmax(18rem, 26rem) 1fr 1fr;
+  flex: 1;
+  min-height: 0;
+}
+.tableWrap {
+  overflow: auto;
+  border-right: 1px solid var(--bs-border-color);
+}
+.filter {
+  display: block;
+  padding: 0.5rem;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--inspect-font-size-small);
+}
+.row {
+  cursor: pointer;
+}
+.selected {
+  outline: 2px solid var(--bs-primary);
+}
+.improved {
+  background: var(--bs-success-bg-subtle);
+}
+.regressed {
+  background: var(--bs-danger-bg-subtle);
+}
+.error {
+  background: var(--bs-warning-bg-subtle);
+}
+.side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.sideHeader {
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--bs-border-color);
+}

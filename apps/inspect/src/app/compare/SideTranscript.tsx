@@ -15,8 +15,6 @@ interface SideTranscriptProps {
   side: "a" | "b";
 }
 
-// Spike (Task 5): renders one sample's transcript outside the store-driven
-// sample routes, to prove useEvalSampleData works from an explicit handle.
 export const SideTranscript: FC<SideTranscriptProps> = ({
   logDir,
   logFile,
