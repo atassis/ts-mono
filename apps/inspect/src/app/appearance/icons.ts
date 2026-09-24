@@ -12,6 +12,7 @@ export const ApplicationIcons = {
   pendingTask: "bi bi-clock",
   // inspect-specific
   columns: "bi bi-layout-three-columns",
+  compare: "bi bi-layout-split",
   downloadLog: "bi bi-download",
   flow: "ii inspect-flow",
   "list-wrap": "bi bi-text-wrap",

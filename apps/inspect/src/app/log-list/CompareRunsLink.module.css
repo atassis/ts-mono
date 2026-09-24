@@ -1,0 +1,13 @@
+:global(.btn).link {
+  background-color: var(--bs-light);
+  border: 1px solid var(--bs-border-color);
+  font-size: 0.7rem;
+  padding: 1px 5px;
+  white-space: nowrap;
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+
+.icon {
+  margin-right: 0.5em;
+}
