@@ -1,7 +1,8 @@
 .page {
-  display: flex;
-  flex-direction: column;
   height: 100vh;
+  width: 100vw;
+  display: grid;
+  grid-template-rows: max-content max-content 1fr;
 }
 .pickers {
   display: flex;
@@ -17,7 +18,6 @@
 .body {
   display: grid;
   grid-template-columns: minmax(18rem, 26rem) 1fr 1fr;
-  flex: 1;
   min-height: 0;
 }
 .tableWrap {
@@ -33,8 +33,15 @@
   border-collapse: collapse;
   font-size: var(--inspect-font-size-small);
 }
-.row {
+.rowButton {
+  border: none;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .selected {
   outline: 2px solid var(--bs-primary);
@@ -50,9 +57,9 @@
 }
 .side {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
 }
 .sideHeader {
   padding: 0.25rem 0.5rem;

@@ -1,7 +1,11 @@
 import { FC, useRef } from "react";
 
 import { TranscriptLayout } from "@tsmono/inspect-components/transcript";
-import { ExtendedFindProvider } from "@tsmono/react/components";
+import {
+  ErrorPanel,
+  ExtendedFindProvider,
+  LoadingBar,
+} from "@tsmono/react/components";
 
 import { useEvalSampleData } from "../../log_data";
 
@@ -26,10 +30,21 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
   const data = useEvalSampleData(logDir, { id, epoch, logFile });
 
   if (data.error) {
-    return <div className={styles.pane}>Error: {data.error.message}</div>;
+    return (
+      <div className={styles.pane}>
+        <ErrorPanel
+          title="Error"
+          error={{ message: data.error.message, stack: data.error.stack }}
+        />
+      </div>
+    );
   }
   if (!data.sample) {
-    return <div className={styles.pane}>Loading…</div>;
+    return (
+      <div className={styles.pane}>
+        <LoadingBar loading />
+      </div>
+    );
   }
 
   return (

@@ -1,9 +1,9 @@
 import clsx from "clsx";
 import { FC, useState } from "react";
 
-import { valueAsString } from "../../utils/format";
+import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 
-import { AlignedSample, CompareCategory } from "./alignRuns";
+import { AlignedSample, CompareCategory, inferScoreType } from "./alignRuns";
 import styles from "./compare.module.css";
 
 type Filter = "all" | "changed" | CompareCategory;
@@ -31,9 +31,6 @@ const kFilters: Filter[] = [
 const show = (filter: Filter, category: CompareCategory): boolean =>
   filter === "all" ||
   (filter === "changed" ? kChanged.has(category) : filter === category);
-
-const fmt = (value: AlignedSample["valueA"]): string =>
-  value === undefined ? "—" : valueAsString(value);
 
 // Explicit map: typed CSS modules have no key for every category.
 const kCategoryClass: Partial<Record<CompareCategory, string>> = {
@@ -95,25 +92,35 @@ export const CompareTable: FC<CompareTableProps> = ({
             <tr
               key={r.key}
               className={clsx(
-                styles.row,
                 kCategoryClass[r.category],
                 r.key === selectedKey && styles.selected
               )}
-              role="button"
-              tabIndex={0}
-              aria-pressed={r.key === selectedKey}
-              onClick={() => onSelect(r.key)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(r.key);
-                }
-              }}
+              aria-selected={r.key === selectedKey}
             >
-              <td>{String(r.id)}</td>
+              <td>
+                <button
+                  type="button"
+                  className={styles.rowButton}
+                  onClick={() => onSelect(r.key)}
+                >
+                  {String(r.id)}
+                </button>
+              </td>
               <td>{r.epoch}</td>
-              <td>{fmt(r.valueA)}</td>
-              <td>{fmt(r.valueB)}</td>
+              <td>
+                <ScoreValueDisplay
+                  value={r.valueA}
+                  scoreType={inferScoreType(r.valueA)}
+                  size={14}
+                />
+              </td>
+              <td>
+                <ScoreValueDisplay
+                  value={r.valueB}
+                  scoreType={inferScoreType(r.valueB)}
+                  size={14}
+                />
+              </td>
               <td>{r.delta === undefined ? "" : r.delta.toFixed(3)}</td>
               <td>{r.category}</td>
             </tr>

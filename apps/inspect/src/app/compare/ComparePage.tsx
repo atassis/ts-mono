@@ -1,26 +1,39 @@
 import { FC } from "react";
 import { useSearchParams } from "react-router";
 
+import { ErrorPanel } from "@tsmono/react/components";
+
 import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
 import { useLogListing, useLogsSync, useSampleSummaries } from "../../log_data";
-import { valueAsString } from "../../utils/format";
+import { ApplicationNavbar } from "../navbar/ApplicationNavbar";
+import { logsUrl } from "../routing/url";
+import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 
-import { alignRuns, firstCommonScorer } from "./alignRuns";
+import { alignRuns, firstCommonScorer, inferScoreType } from "./alignRuns";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
 import { SideTranscript } from "./SideTranscript";
 
 // logDir may not end with "/"; the listing's names are full URLs, so this is
 // display only (log pickers still key on `log.name` verbatim).
-const relativeLabel = (log: Log, logDir: string): string => {
+const relativePath = (log: Log, logDir: string): string => {
   const withSlash = logDir.endsWith("/") ? logDir : `${logDir}/`;
-  const path = log.name.startsWith(withSlash)
+  return log.name.startsWith(withSlash)
     ? log.name.slice(withSlash.length)
     : log.name;
-  const suffix = [log.task, log.model].filter(Boolean).join(" · ");
-  return suffix ? `${path} (${suffix})` : path;
 };
+
+// Model leads so a truncated select shows the run identity rather than the
+// tail of a long path.
+const pickerLabel = (log: Log, logDir: string): string => {
+  const path = relativePath(log, logDir);
+  const lead = log.model ?? log.task;
+  return lead ? `${lead} — ${path}` : path;
+};
+
+const runIdentity = (log: Log | undefined): string =>
+  [log?.model, log?.task].filter(Boolean).join(" · ");
 
 export const ComparePage: FC = () => {
   const logDir = useLogDir();
@@ -31,7 +44,7 @@ export const ComparePage: FC = () => {
 
   // Kick off the dir listing sync — nothing else in this route mounts it,
   // unlike LogsPanel (its usual owner).
-  useLogsSync(logDir, "");
+  const sync = useLogsSync(logDir, "");
   const logs = useLogListing(logDir);
   const summariesA = useSampleSummaries(logDir, a);
   const summariesB = useSampleSummaries(logDir, b);
@@ -49,7 +62,10 @@ export const ComparePage: FC = () => {
   const rows = a && b ? alignRuns(rowsA, rowsB, scorer) : [];
   const selected = rows.find((r) => r.key === selectedKey);
 
-  const summaryError = summariesA.error ?? summariesB.error;
+  const logA = logs.data?.find((log) => log.name === a);
+  const logB = logs.data?.find((log) => log.name === b);
+
+  const error = logs.error ?? summariesA.error ?? summariesB.error;
 
   const picker = (side: "a" | "b", value: string | undefined) => (
     <label>
@@ -64,7 +80,7 @@ export const ComparePage: FC = () => {
         </option>
         {(logs.data ?? []).map((log) => (
           <option key={log.name} value={log.name}>
-            {relativeLabel(log, logDir)}
+            {pickerLabel(log, logDir)}
           </option>
         ))}
       </select>
@@ -73,66 +89,78 @@ export const ComparePage: FC = () => {
 
   return (
     <div className={styles.page}>
+      <ApplicationNavbar
+        currentPath={undefined}
+        fnNavigationUrl={logsUrl}
+        loading={sync.busy}
+      />
       <div className={styles.pickers}>
         {picker("a", a)}
         {picker("b", b)}
         {scorer ? <span>scorer: {scorer}</span> : null}
       </div>
-      <div className={styles.body}>
-        <CompareTable
-          rows={rows}
-          selectedKey={selectedKey}
-          onSelect={(key) => update("sample", key)}
+      {error ? (
+        <ErrorPanel
+          title="Error"
+          error={{ message: error.message, stack: error.stack }}
         />
-        {summaryError ? (
-          <div>Error: {summaryError.message}</div>
-        ) : !a || !b ? (
-          <div>Pick a log for A and B</div>
-        ) : selected ? (
-          <>
-            <div className={styles.side}>
-              <div className={styles.sideHeader}>
-                A ·{" "}
-                {selected.valueA === undefined
-                  ? "—"
-                  : valueAsString(selected.valueA)}
+      ) : (
+        <div className={styles.body}>
+          <CompareTable
+            rows={rows}
+            selectedKey={selectedKey}
+            onSelect={(key) => update("sample", key)}
+          />
+          {!a || !b ? (
+            <div>Pick a log for A and B</div>
+          ) : selected ? (
+            <>
+              <div className={styles.side}>
+                <div className={styles.sideHeader}>
+                  A · {runIdentity(logA)} ·{" "}
+                  <ScoreValueDisplay
+                    value={selected.valueA}
+                    scoreType={inferScoreType(selected.valueA)}
+                  />
+                </div>
+                {selected.a ? (
+                  <SideTranscript
+                    logDir={logDir}
+                    logFile={a}
+                    id={selected.id}
+                    epoch={selected.epoch}
+                    side="a"
+                  />
+                ) : (
+                  <div>not in A</div>
+                )}
               </div>
-              {selected.a ? (
-                <SideTranscript
-                  logDir={logDir}
-                  logFile={a}
-                  id={selected.id}
-                  epoch={selected.epoch}
-                  side="a"
-                />
-              ) : (
-                <div>not in A</div>
-              )}
-            </div>
-            <div className={styles.side}>
-              <div className={styles.sideHeader}>
-                B ·{" "}
-                {selected.valueB === undefined
-                  ? "—"
-                  : valueAsString(selected.valueB)}
+              <div className={styles.side}>
+                <div className={styles.sideHeader}>
+                  B · {runIdentity(logB)} ·{" "}
+                  <ScoreValueDisplay
+                    value={selected.valueB}
+                    scoreType={inferScoreType(selected.valueB)}
+                  />
+                </div>
+                {selected.b ? (
+                  <SideTranscript
+                    logDir={logDir}
+                    logFile={b}
+                    id={selected.id}
+                    epoch={selected.epoch}
+                    side="b"
+                  />
+                ) : (
+                  <div>not in B</div>
+                )}
               </div>
-              {selected.b ? (
-                <SideTranscript
-                  logDir={logDir}
-                  logFile={b}
-                  id={selected.id}
-                  epoch={selected.epoch}
-                  side="b"
-                />
-              ) : (
-                <div>not in B</div>
-              )}
-            </div>
-          </>
-        ) : (
-          <div>Select a sample</div>
-        )}
-      </div>
+            </>
+          ) : (
+            <div>Select a sample</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

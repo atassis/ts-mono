@@ -1,6 +1,6 @@
 import { ScoreValue } from "../../@types/extraInspect";
 import { SampleSummary } from "../../client/api/types";
-import { kScoreTypePassFail } from "../../constants";
+import { kScoreTypeBoolean, kScoreTypePassFail } from "../../constants";
 import { scoreTone } from "../samples/header-v2/scoreTone";
 
 export type CompareCategory =
@@ -33,13 +33,19 @@ export const sampleKey = (id: string | number, epoch: number): string =>
 
 const kPassFailLetters = new Set(["C", "I", "P", "N", "A", "B", "F"]);
 
+// Same heuristic ScoreValueDisplay needs to pick a renderer (circle vs
+// text) — there's no score schema here, just the raw value, so infer from
+// its shape rather than duplicating this per caller.
+export const inferScoreType = (value: ScoreValue | undefined): string => {
+  if (typeof value === "boolean") return kScoreTypeBoolean;
+  if (typeof value === "string" && kPassFailLetters.has(value.toUpperCase()))
+    return kScoreTypePassFail;
+  return "";
+};
+
 export const outcomeOf = (value: ScoreValue | undefined): Outcome => {
   if (value === undefined) return "other";
-  const scoreType =
-    typeof value === "string" && kPassFailLetters.has(value.toUpperCase())
-      ? kScoreTypePassFail
-      : "";
-  const tone = scoreTone(value, scoreType);
+  const tone = scoreTone(value, inferScoreType(value));
   if (tone === "pass") return "pass";
   if (tone === "fail") return "fail";
   return "other";
