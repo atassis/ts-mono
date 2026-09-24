@@ -65,9 +65,31 @@ const valueOf = (
   sample: SampleSummary | undefined,
   scorer: string | undefined
 ): ScoreValue | undefined =>
-  scorer === undefined
-    ? undefined
-    : (sample?.scores?.[scorer]?.value ?? undefined);
+  scorer === undefined ? undefined : sample?.scores?.[scorer]?.value;
+
+const isFiniteNumberString = (value: string): boolean => {
+  const trimmed = value.trim();
+  return trimmed !== "" && Number.isFinite(Number(trimmed));
+};
+
+// Mirrors inspect_ai's value_to_float (scorer/_metric.py): C/P/I/N are
+// exact-case sentinels checked before any type coercion, so lowercase
+// letters fall through to the string branch below (and, unlike Python,
+// unmappable values return undefined instead of a 0.0 fallback).
+const toNumber = (value: ScoreValue | undefined): number | undefined => {
+  if (value === "C") return 1;
+  if (value === "P") return 0.5;
+  if (value === "I" || value === "N") return 0;
+  if (typeof value === "number" || typeof value === "boolean")
+    return Number(value);
+  if (typeof value === "string") {
+    const lower = value.toLowerCase();
+    if (lower === "yes" || lower === "true") return 1;
+    if (lower === "no" || lower === "false") return 0;
+    if (isFiniteNumberString(value)) return Number(value);
+  }
+  return undefined;
+};
 
 const classify = (
   a: SampleSummary | undefined,
@@ -88,8 +110,10 @@ const classify = (
     return { category: ob === "pass" ? "improved" : "regressed" };
   }
 
-  if (typeof valueA === "number" && typeof valueB === "number") {
-    const delta = valueB - valueA;
+  const na = toNumber(valueA);
+  const nb = toNumber(valueB);
+  if (na !== undefined && nb !== undefined) {
+    const delta = nb - na;
     if (delta > 0) return { category: "improved", delta };
     if (delta < 0) return { category: "regressed", delta };
     return { category: "unchanged", delta };

@@ -116,4 +116,31 @@ describe("alignRuns", () => {
     const rows = alignRuns([s(1, 1)], [s(1, 1)], undefined);
     expect(rows[0]?.category).toBe("unchanged");
   });
+
+  test("partial vs pass/fail is scored numerically, not hidden as unchanged", () => {
+    expect(alignRuns([s(1, 1, "P")], [s(1, 1, "C")], "match")[0]).toMatchObject(
+      { category: "improved", delta: 0.5 }
+    );
+    expect(alignRuns([s(1, 1, "C")], [s(1, 1, "P")], "match")[0]).toMatchObject(
+      { category: "regressed" }
+    );
+    expect(alignRuns([s(1, 1, "P")], [s(1, 1, "I")], "match")[0]).toMatchObject(
+      { category: "regressed" }
+    );
+    expect(alignRuns([s(1, 1, "P")], [s(1, 1, "P")], "match")[0]).toMatchObject(
+      { category: "unchanged", delta: 0 }
+    );
+  });
+
+  test("letter vs numeric score is scored numerically", () => {
+    expect(alignRuns([s(1, 1, "P")], [s(1, 1, 0.9)], "match")[0]).toMatchObject(
+      { category: "improved" }
+    );
+  });
+
+  test("two unmappable free-text values are unchanged, no delta", () => {
+    const row = alignRuns([s(1, 1, "foo")], [s(1, 1, "bar")], "match")[0];
+    expect(row?.category).toBe("unchanged");
+    expect(row?.delta).toBeUndefined();
+  });
 });
