@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { useSearchParams } from "react-router";
 
-import { ErrorPanel } from "@tsmono/react/components";
+import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
 
 import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
@@ -66,6 +66,10 @@ export const ComparePage: FC = () => {
   const logB = logs.data?.find((log) => log.name === b);
 
   const error = logs.error ?? summariesA.error ?? summariesB.error;
+  // Both logs are picked but their samples haven't settled yet — without
+  // this, the table briefly shows 0 rows, indistinguishable from "no data".
+  const loading =
+    !!(a && b) && (logs.loading || summariesA.loading || summariesB.loading);
 
   const picker = (side: "a" | "b", value: string | undefined) => (
     <label>
@@ -92,7 +96,7 @@ export const ComparePage: FC = () => {
       <ApplicationNavbar
         currentPath={undefined}
         fnNavigationUrl={logsUrl}
-        loading={sync.busy}
+        loading={sync.busy || loading}
       />
       <div className={styles.pickers}>
         {picker("a", a)}
@@ -104,6 +108,11 @@ export const ComparePage: FC = () => {
           title="Error"
           error={{ message: error.message, stack: error.stack }}
         />
+      ) : loading ? (
+        <div className={styles.loading}>
+          <LoadingBar loading />
+          Loading samples…
+        </div>
       ) : (
         <div className={styles.body}>
           <CompareTable
