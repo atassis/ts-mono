@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
 
 import { SampleSummary } from "../../client/api/types";
+import { kScoreTypeBoolean, kScoreTypePassFail } from "../../constants";
 
 import {
   alignRuns,
   firstCommonScorer,
+  inferScoreType,
   outcomeOf,
   sampleKey,
 } from "./alignRuns";
@@ -48,6 +50,26 @@ describe("outcomeOf", () => {
   });
   test("missing value", () => {
     expect(outcomeOf(undefined)).toBe("other");
+  });
+});
+
+describe("inferScoreType", () => {
+  test("booleans", () => {
+    expect(inferScoreType(true)).toBe(kScoreTypeBoolean);
+    expect(inferScoreType(false)).toBe(kScoreTypeBoolean);
+  });
+  test("pass/fail letters, case-insensitive", () => {
+    expect(inferScoreType("C")).toBe(kScoreTypePassFail);
+    expect(inferScoreType("i")).toBe(kScoreTypePassFail);
+  });
+  test("numbers are not pass/fail", () => {
+    expect(inferScoreType(0.5)).toBe("");
+  });
+  test("free-text strings are not pass/fail", () => {
+    expect(inferScoreType("foo")).toBe("");
+  });
+  test("missing value", () => {
+    expect(inferScoreType(undefined)).toBe("");
   });
 });
 
