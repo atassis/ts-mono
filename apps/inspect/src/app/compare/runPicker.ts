@@ -31,6 +31,10 @@ export const runMatchesQuery = (haystack: string, query: string): boolean => {
   return terms.every((term) => haystack.includes(term));
 };
 
+// Until a log's header loads, the listing's task comes from the file name,
+// where inspect writes "_" as "-" (agentic_repo -> agentic-repo).
+const taskKey = (log: Log): string | undefined => log.task?.replace(/_/g, "-");
+
 // B candidates are scoped to A's task unless the caller asked to see all
 // tasks; with no A picked yet, every run is a valid B.
 export const candidatesForB = (
@@ -38,10 +42,10 @@ export const candidatesForB = (
   a: Log | undefined,
   showAllTasks: boolean
 ): Log[] =>
-  !a || showAllTasks ? logs : logs.filter((log) => log.task === a.task);
+  !a || showAllTasks ? logs : logs.filter((log) => taskKey(log) === taskKey(a));
 
 export const tasksDiffer = (a: Log | undefined, b: Log | undefined): boolean =>
-  !!a && !!b && a.task !== b.task;
+  !!a && !!b && taskKey(a) !== taskKey(b);
 
 // Same task, but the task's source changed between runs — samples may not
 // line up even though the task name matches.
@@ -51,7 +55,7 @@ export const taskVersionDiffers = (
 ): boolean =>
   !!a &&
   !!b &&
-  a.task === b.task &&
+  taskKey(a) === taskKey(b) &&
   a.task_version !== undefined &&
   b.task_version !== undefined &&
   a.task_version !== b.task_version;

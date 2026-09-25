@@ -110,6 +110,16 @@ describe("candidatesForB", () => {
     ]);
   });
 
+  test("file-name task (header not loaded) matches the eval task name", () => {
+    const loaded = log({ name: "a", task: "agentic_repo" });
+    const unloaded = log({ name: "b", task: "agentic-repo" });
+    expect(candidatesForB([loaded, unloaded], loaded, false)).toEqual([
+      loaded,
+      unloaded,
+    ]);
+    expect(tasksDiffer(loaded, unloaded)).toBe(false);
+  });
+
   test("show-all-tasks bypasses the scope", () => {
     expect(candidatesForB([a, sameTask, otherTask], a, true)).toEqual([
       a,
