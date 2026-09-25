@@ -4,6 +4,7 @@ import { FC, useState } from "react";
 import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 
 import { AlignedSample, CompareCategory, inferScoreType } from "./alignRuns";
+import { CategoryLegend } from "./CategoryLegend";
 import styles from "./compare.module.css";
 
 type Filter = "all" | "changed" | CompareCategory;
@@ -58,24 +59,29 @@ export const CompareTable: FC<CompareTableProps> = ({
 
   return (
     <div className={styles.tableWrap}>
-      <label className={styles.filter}>
-        Show{" "}
-        <select
-          aria-label="Show"
-          value={filter}
-          onChange={(e) => {
-            const next = kFilters.find((f) => f === e.target.value);
-            setFilter(next ?? "all");
-          }}
-        >
-          {kFilters.map((f) => (
-            <option key={f} value={f}>
-              {f}
-              {f !== "all" && f !== "changed" ? ` (${counts.get(f) ?? 0})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className={styles.filter}>
+        <label>
+          Show{" "}
+          <select
+            aria-label="Show"
+            value={filter}
+            onChange={(e) => {
+              const next = kFilters.find((f) => f === e.target.value);
+              setFilter(next ?? "all");
+            }}
+          >
+            {kFilters.map((f) => (
+              <option key={f} value={f}>
+                {f}
+                {f !== "all" && f !== "changed"
+                  ? ` (${counts.get(f) ?? 0})`
+                  : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <CategoryLegend />
+      </div>
       <table className={styles.table}>
         <thead>
           <tr>

@@ -1,0 +1,163 @@
+.container {
+  display: inline-block;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  min-width: 18rem;
+  max-width: 32rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.trigger:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+.placeholder {
+  color: var(--bs-secondary-color);
+  flex: 1;
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 0.75em;
+  flex-shrink: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+  font-size: var(--inspect-font-size-small);
+}
+
+.rowIcon {
+  flex-shrink: 0;
+}
+
+.rowModel,
+.rowTask {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowModel {
+  font-weight: 600;
+  max-width: 10rem;
+}
+
+.rowTask {
+  max-width: 10rem;
+  color: var(--bs-secondary-color);
+}
+
+.rowMetric {
+  white-space: nowrap;
+}
+
+.rowMuted {
+  margin-left: auto;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  font-size: var(--inspect-font-size-smallest);
+}
+
+.error {
+  color: var(--bs-danger);
+}
+.started {
+  color: var(--bs-secondary);
+}
+.success {
+  color: var(--bs-success);
+}
+.cancelled {
+  color: var(--bs-secondary);
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1049;
+}
+
+.menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  max-height: 24rem;
+  max-width: 40rem;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.searchIcon {
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 0.5rem 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.option {
+  display: flex;
+  width: 100%;
+  padding: 0.3rem 0.75rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.option:hover,
+.highlighted {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.selectedOption {
+  font-weight: 600;
+}

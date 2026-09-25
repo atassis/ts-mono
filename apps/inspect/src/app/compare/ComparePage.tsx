@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import { useSearchParams } from "react-router";
 
 import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
@@ -13,24 +13,14 @@ import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 import { alignRuns, firstCommonScorer, inferScoreType } from "./alignRuns";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
+import { RunPicker } from "./RunPicker";
+import {
+  candidatesForB,
+  sortRunsNewestFirst,
+  tasksDiffer,
+  taskVersionDiffers,
+} from "./runPicker";
 import { SideTranscript } from "./SideTranscript";
-
-// logDir may not end with "/"; the listing's names are full URLs, so this is
-// display only (log pickers still key on `log.name` verbatim).
-const relativePath = (log: Log, logDir: string): string => {
-  const withSlash = logDir.endsWith("/") ? logDir : `${logDir}/`;
-  return log.name.startsWith(withSlash)
-    ? log.name.slice(withSlash.length)
-    : log.name;
-};
-
-// Model leads so a truncated select shows the run identity rather than the
-// tail of a long path.
-const pickerLabel = (log: Log, logDir: string): string => {
-  const path = relativePath(log, logDir);
-  const lead = log.model ?? log.task;
-  return lead ? `${lead} — ${path}` : path;
-};
 
 const runIdentity = (log: Log | undefined): string =>
   [log?.model, log?.task].filter(Boolean).join(" · ");
@@ -41,6 +31,7 @@ export const ComparePage: FC = () => {
   const a = params.get("a") ?? undefined;
   const b = params.get("b") ?? undefined;
   const selectedKey = params.get("sample") ?? undefined;
+  const [showAllTasks, setShowAllTasks] = useState(false);
 
   // Kick off the dir listing sync — nothing else in this route mounts it,
   // unlike LogsPanel (its usual owner).
@@ -62,34 +53,18 @@ export const ComparePage: FC = () => {
   const rows = a && b ? alignRuns(rowsA, rowsB, scorer) : [];
   const selected = rows.find((r) => r.key === selectedKey);
 
-  const logA = logs.data?.find((log) => log.name === a);
-  const logB = logs.data?.find((log) => log.name === b);
+  const allRuns = sortRunsNewestFirst(logs.data ?? []);
+  const logA = allRuns.find((log) => log.name === a);
+  const logB = allRuns.find((log) => log.name === b);
+  const bCandidates = candidatesForB(allRuns, logA, showAllTasks);
+  const mismatchedTasks = tasksDiffer(logA, logB);
+  const mismatchedVersions = taskVersionDiffers(logA, logB);
 
   const error = logs.error ?? summariesA.error ?? summariesB.error;
   // Both logs are picked but their samples haven't settled yet — without
   // this, the table briefly shows 0 rows, indistinguishable from "no data".
   const loading =
     !!(a && b) && (logs.loading || summariesA.loading || summariesB.loading);
-
-  const picker = (side: "a" | "b", value: string | undefined) => (
-    <label>
-      {side.toUpperCase()}{" "}
-      <select
-        aria-label={`Log ${side.toUpperCase()}`}
-        value={value ?? ""}
-        onChange={(e) => update(side, e.target.value)}
-      >
-        <option value="" disabled>
-          choose a log…
-        </option>
-        {(logs.data ?? []).map((log) => (
-          <option key={log.name} value={log.name}>
-            {pickerLabel(log, logDir)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
 
   return (
     <div className={styles.page}>
@@ -99,9 +74,50 @@ export const ComparePage: FC = () => {
         loading={sync.busy || loading}
       />
       <div className={styles.pickers}>
-        {picker("a", a)}
-        {picker("b", b)}
+        <label className={styles.pickerLabel} htmlFor="compare-picker-a">
+          A
+          <RunPicker
+            id="compare-picker-a"
+            ariaLabel="Log A"
+            logs={allRuns}
+            logDir={logDir}
+            selected={logA}
+            onSelect={(log) => update("a", log.name)}
+          />
+        </label>
+        <label className={styles.pickerLabel} htmlFor="compare-picker-b">
+          B
+          <RunPicker
+            id="compare-picker-b"
+            ariaLabel="Log B"
+            logs={bCandidates}
+            logDir={logDir}
+            selected={logB}
+            onSelect={(log) => update("b", log.name)}
+            menuHeader={
+              logA ? (
+                <label className={styles.showAllTasks}>
+                  <input
+                    type="checkbox"
+                    checked={showAllTasks}
+                    onChange={(e) => setShowAllTasks(e.target.checked)}
+                  />
+                  Show all tasks
+                </label>
+              ) : undefined
+            }
+          />
+        </label>
         {scorer ? <span>scorer: {scorer}</span> : null}
+        {mismatchedTasks ? (
+          <span role="alert" className={styles.warning}>
+            different tasks — samples won&apos;t align
+          </span>
+        ) : mismatchedVersions ? (
+          <span role="alert" className={styles.warning}>
+            same task, different task_version — samples may not align
+          </span>
+        ) : null}
       </div>
       {error ? (
         <ErrorPanel
