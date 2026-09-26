@@ -16,6 +16,7 @@ import { useAppConfig } from "../../app_config";
 import { kSampleEventTabId } from "../../constants";
 import { storeImplementation } from "../../state/store";
 import { ComparePage } from "../compare/ComparePage";
+import { RunsGridPage } from "../compare/RunsGridPage";
 import { LogsPanel } from "../log-list/LogsPanel";
 import { LogSampleDetailView } from "../log-view/LogSampleDetailView";
 import { LogViewContainer } from "../log-view/LogViewContainer";
@@ -123,6 +124,10 @@ export const AppRouter = createHashRouter(
         {
           path: "/compare",
           element: <ComparePage />,
+        },
+        {
+          path: "/compare/grid",
+          element: <RunsGridPage />,
         },
       ],
     },

@@ -1,0 +1,125 @@
+.grid {
+  border-collapse: collapse;
+  font-size: var(--inspect-font-size-small);
+  white-space: nowrap;
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bs-body-bg);
+  z-index: 1;
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.25rem 0.4rem;
+}
+
+.cornerHeader,
+.summaryHeader {
+  text-align: left;
+  font-weight: normal;
+  color: var(--bs-secondary-color);
+}
+
+.runHeader {
+  text-align: center;
+  max-width: 8rem;
+}
+
+.baselineButton {
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.baselineActive {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
+}
+
+.rowButton {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.15rem 0.4rem;
+}
+
+.focusedRow > td {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -1px;
+}
+
+.cell {
+  padding: 0.1rem;
+  text-align: center;
+}
+
+.cellButton {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.cellButton:disabled {
+  cursor: default;
+}
+
+.pass {
+  background: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+}
+
+.fail {
+  background: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+
+.error {
+  background: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+}
+
+.other {
+  background: var(--bs-secondary-bg-subtle);
+}
+
+.missing {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bs-body-bg),
+    var(--bs-body-bg) 3px,
+    var(--bs-secondary-bg-subtle) 3px,
+    var(--bs-secondary-bg-subtle) 6px
+  );
+  border-style: dashed;
+}
+
+.summaryCell {
+  text-align: right;
+  padding: 0.15rem 0.5rem;
+  color: var(--bs-secondary-color);
+}
+
+.patternOutlier {
+  color: var(--bs-danger-text-emphasis);
+  font-weight: 600;
+}
+
+.patternSplit {
+  color: var(--bs-warning-text-emphasis);
+  font-weight: 600;
+}
