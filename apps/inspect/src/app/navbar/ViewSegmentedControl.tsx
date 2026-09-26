@@ -14,13 +14,14 @@ import {
 } from "../routing/url";
 
 interface ViewSegmentControlProps {
-  selectedSegment: "logs" | "tasks" | "samples";
+  selectedSegment: "logs" | "tasks" | "samples" | "compare";
 }
 
 const segments = [
   { id: "tasks", label: "Tasks", icon: ApplicationIcons.navbar.tasks },
   { id: "logs", label: "Folders", icon: ApplicationIcons.file },
   { id: "samples", label: "Samples", icon: ApplicationIcons.sample },
+  { id: "compare", label: "Compare runs", icon: ApplicationIcons.compare },
 ];
 
 export const ViewSegmentedControl: FC<ViewSegmentControlProps> = ({
@@ -37,17 +38,16 @@ export const ViewSegmentedControl: FC<ViewSegmentControlProps> = ({
       onSegmentChange={(segment) => {
         // Resolve the current path from whichever route we're on
         const path = logPath || samplesPath || tasksPath || "";
-
-        if (segment === "logs") {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          navigate(logsUrl(path));
-        } else if (segment === "tasks") {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          navigate(tasksUrl(path));
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          navigate(samplesUrl(path));
-        }
+        const url =
+          segment === "logs"
+            ? logsUrl(path)
+            : segment === "tasks"
+              ? tasksUrl(path)
+              : segment === "compare"
+                ? "/compare"
+                : samplesUrl(path);
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        navigate(url);
       }}
     />
   );

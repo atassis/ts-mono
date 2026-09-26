@@ -7,6 +7,7 @@ import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
 import { useLogListing, useLogsSync, useSampleSummaries } from "../../log_data";
 import { ApplicationNavbar } from "../navbar/ApplicationNavbar";
+import { ViewSegmentedControl } from "../navbar/ViewSegmentedControl";
 import { logsUrl } from "../routing/url";
 import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 
@@ -72,7 +73,9 @@ export const ComparePage: FC = () => {
         currentPath={undefined}
         fnNavigationUrl={logsUrl}
         loading={sync.busy || loading}
-      />
+      >
+        <ViewSegmentedControl selectedSegment="compare" />
+      </ApplicationNavbar>
       <div className={styles.pickers}>
         <label className={styles.pickerLabel} htmlFor="compare-picker-a">
           A
