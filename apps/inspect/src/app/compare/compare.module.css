@@ -64,6 +64,10 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.rowButton:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
 .selected {
   outline: 2px solid var(--bs-primary);
 }
