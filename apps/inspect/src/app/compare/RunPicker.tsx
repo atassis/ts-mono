@@ -9,6 +9,7 @@ import { Log } from "../../client/api/types";
 import { ApplicationIcons } from "../appearance/icons";
 
 import {
+  distinguishingModelLabel,
   relativeLogPath,
   runMatchesQuery,
   runSearchHaystack,
@@ -36,18 +37,26 @@ const shortDate = (value: string | undefined): string => {
 interface RunRowProps {
   log: Log;
   logDir: string;
+  /** Every model in the picker's list, used to strip the prefix they all
+   *  share so near-identical model names stay distinguishable. */
+  allModels: string[];
 }
 
 /** Dense one-line summary of a run, shared by the closed picker and its
  *  option list so the selected value reads identically either way. */
-const RunRow: FC<RunRowProps> = ({ log, logDir }) => {
+const RunRow: FC<RunRowProps> = ({ log, logDir, allModels }) => {
   const { icon, className } = statusIcon(log.status);
   const metric = log.primary_metric;
+  const modelLabel = log.model
+    ? distinguishingModelLabel(log.model, allModels)
+    : "—";
   return (
     <span className={styles.row}>
       <i className={clsx(icon, className, styles.rowIcon)} />
-      <span className={styles.rowModel}>{log.model ?? "—"}</span>
-      <span className={styles.rowTask}>
+      <span className={styles.rowModel} title={log.model}>
+        {modelLabel}
+      </span>
+      <span className={styles.rowTask} title={log.task ?? undefined}>
         {log.task ?? relativeLogPath(log, logDir)}
       </span>
       {metric ? (
@@ -90,6 +99,7 @@ export const RunPicker: FC<RunPickerProps> = ({
   const [query, setQuery] = useState("");
   const [highlighted, setHighlighted] = useState(0);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{
     top: number;
     left: number;
@@ -99,6 +109,11 @@ export const RunPicker: FC<RunPickerProps> = ({
   const filtered = logs.filter((log) =>
     runMatchesQuery(runSearchHaystack(log, logDir), query)
   );
+  // Computed from the full list, not `filtered` — the shared prefix (and so
+  // each row's label) shouldn't shift around as the user types a query.
+  const allModels = logs
+    .map((log) => log.model)
+    .filter((m): m is string => Boolean(m));
 
   const computePosition = (): void => {
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -127,6 +142,18 @@ export const RunPicker: FC<RunPickerProps> = ({
     setOpen(false);
     buttonRef.current?.focus();
   };
+
+  // Dismiss on outside press rather than a full-viewport backdrop element:
+  // a backdrop physically stacks over every other trigger on the page, so
+  // clicking straight from an open A picker to B's trigger would hit A's
+  // backdrop and only close A instead of also opening B. mousedown (not
+  // click) so this wins over the option buttons' own click handlers.
+  useEventListener(document, "mousedown", (event) => {
+    if (!open || !(event.target instanceof Node)) return;
+    if (buttonRef.current?.contains(event.target)) return;
+    if (menuRef.current?.contains(event.target)) return;
+    closeMenu();
+  });
 
   const commitHighlighted = (): void => {
     const log = filtered[highlighted];
@@ -165,7 +192,7 @@ export const RunPicker: FC<RunPickerProps> = ({
         onClick={() => (open ? closeMenu() : openMenu())}
       >
         {selected ? (
-          <RunRow log={selected} logDir={logDir} />
+          <RunRow log={selected} logDir={logDir} allModels={allModels} />
         ) : (
           <span className={styles.placeholder}>choose a log…</span>
         )}
@@ -174,73 +201,65 @@ export const RunPicker: FC<RunPickerProps> = ({
       {open &&
         position &&
         createPortal(
-          <>
-            <div
-              className={styles.backdrop}
-              role="presentation"
-              onClick={closeMenu}
-            />
-            <div
-              className={styles.menu}
-              style={{
-                top: position.top,
-                left: position.left,
-                minWidth: position.width,
-              }}
-            >
-              {menuHeader}
-              <div className={styles.searchRow}>
-                <i
-                  className={clsx(ApplicationIcons.search, styles.searchIcon)}
-                />
-                <input
-                  // Focus on mount: the input only exists once the menu opens
-                  // in response to a click, so this is never a page-load
-                  // autofocus.
-                  ref={(el) => el?.focus()}
-                  className={styles.searchInput}
-                  type="text"
-                  value={query}
-                  placeholder="Filter by model, task, path, date…"
-                  aria-label={`${ariaLabel} search`}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setHighlighted(0);
-                  }}
-                  onKeyDown={handleInputKeyDown}
-                />
-              </div>
-              <ul role="listbox" className={styles.list} aria-label={ariaLabel}>
-                {filtered.length === 0 ? (
-                  <li className={styles.empty}>No matching runs</li>
-                ) : (
-                  filtered.map((log, index) => (
-                    <li
-                      key={log.name}
-                      role="option"
-                      aria-selected={log.name === selected?.name}
-                    >
-                      <button
-                        type="button"
-                        className={clsx(
-                          styles.option,
-                          index === highlighted && styles.highlighted,
-                          log.name === selected?.name && styles.selectedOption
-                        )}
-                        onMouseEnter={() => setHighlighted(index)}
-                        onClick={() => {
-                          onSelect(log);
-                          closeMenu();
-                        }}
-                      >
-                        <RunRow log={log} logDir={logDir} />
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
+          <div
+            ref={menuRef}
+            className={styles.menu}
+            style={{
+              top: position.top,
+              left: position.left,
+              minWidth: position.width,
+            }}
+          >
+            {menuHeader}
+            <div className={styles.searchRow}>
+              <i className={clsx(ApplicationIcons.search, styles.searchIcon)} />
+              <input
+                // Focus on mount: the input only exists once the menu opens
+                // in response to a click, so this is never a page-load
+                // autofocus.
+                ref={(el) => el?.focus()}
+                className={styles.searchInput}
+                type="text"
+                value={query}
+                placeholder="Filter by model, task, path, date…"
+                aria-label={`${ariaLabel} search`}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setHighlighted(0);
+                }}
+                onKeyDown={handleInputKeyDown}
+              />
             </div>
-          </>,
+            <ul role="listbox" className={styles.list} aria-label={ariaLabel}>
+              {filtered.length === 0 ? (
+                <li className={styles.empty}>No matching runs</li>
+              ) : (
+                filtered.map((log, index) => (
+                  <li
+                    key={log.name}
+                    role="option"
+                    aria-selected={log.name === selected?.name}
+                  >
+                    <button
+                      type="button"
+                      className={clsx(
+                        styles.option,
+                        index === highlighted && styles.highlighted,
+                        log.name === selected?.name && styles.selectedOption
+                      )}
+                      onMouseEnter={() => setHighlighted(index)}
+                      onClick={() => {
+                        onSelect(log);
+                        closeMenu();
+                      }}
+                    >
+                      <RunRow log={log} logDir={logDir} allModels={allModels} />
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>,
           document.body
         )}
     </div>
