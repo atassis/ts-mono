@@ -14,10 +14,14 @@ export interface GridCell {
 // "outlier": exactly one run disagrees with every other run that has a
 // pass/fail outcome — the mistral-vs-everyone-else shape. "split": more
 // than one run on the minority side — no single run to blame. "unanimous":
-// every run that scored agrees. "no-data": fewer than two runs produced a
-// pass/fail outcome here, so agreement isn't meaningful (errors, missing
-// samples, or a scorer with no pass/fail semantics).
-export type GridPattern = "unanimous" | "outlier" | "split" | "no-data";
+// every run that scored agrees (pass). "all-fail": every run that scored
+// agrees, and the agreement is a fail — a pre-computed insight worth its
+// own category, since it usually means the task or scorer is broken rather
+// than N independent model failures. "no-data": fewer than two runs
+// produced a pass/fail outcome here, so agreement isn't meaningful (errors,
+// missing samples, or a scorer with no pass/fail semantics).
+export type GridPattern =
+  "unanimous" | "all-fail" | "outlier" | "split" | "no-data";
 
 export interface GridRow {
   key: string;
@@ -112,7 +116,7 @@ export const alignRunsGrid = (
     if (votedRuns < 2) {
       pattern = "no-data";
     } else if (minority.length === 0) {
-      pattern = "unanimous";
+      pattern = failRuns.length === votedRuns ? "all-fail" : "unanimous";
     } else if (minority.length === 1) {
       pattern = "outlier";
       outlierRunIndex = minority[0];
@@ -131,6 +135,24 @@ export const alignRunsGrid = (
       outlierRunIndex,
     };
   });
+};
+
+/** Which sample ids span more than one epoch in this grid — used to decide
+ *  whether a row's epoch needs a "#N" suffix at all. Showing "#1" only once
+ *  a "#2" exists elsewhere keeps single-epoch rows uncluttered while making
+ *  "19 #1" / "19 #2" consistent once both are present (UX review). */
+export const idsWithMultipleEpochs = (
+  rows: GridRow[]
+): Set<string | number> => {
+  const epochsById = new Map<string | number, Set<number>>();
+  for (const row of rows) {
+    const epochs = epochsById.get(row.id) ?? new Set<number>();
+    epochs.add(row.epoch);
+    epochsById.set(row.id, epochs);
+  }
+  const multi = new Set<string | number>();
+  for (const [id, epochs] of epochsById) if (epochs.size > 1) multi.add(id);
+  return multi;
 };
 
 /** Rows most worth a researcher's attention first: biggest disagreement,

@@ -5,6 +5,7 @@ import { SampleSummary } from "../../client/api/types";
 import {
   alignRunsGrid,
   firstCommonScorerN,
+  idsWithMultipleEpochs,
   rowCompareTarget,
   sortByDisagreement,
 } from "./alignRunsGrid";
@@ -32,6 +33,12 @@ describe("alignRunsGrid", () => {
     const runs = [[s(1, 1, "C")], [s(1, 1, "C")], [s(1, 1, "C")]];
     const [row] = alignRunsGrid(runs, "match");
     expect(row).toMatchObject({ pattern: "unanimous", disagreement: 0 });
+  });
+
+  test("all-fail row: every run agrees, and the agreement is a fail", () => {
+    const runs = [[s(1, 1, "I")], [s(1, 1, "I")], [s(1, 1, "I")]];
+    const [row] = alignRunsGrid(runs, "match");
+    expect(row).toMatchObject({ pattern: "all-fail", disagreement: 0 });
   });
 
   test("outlier row: one run disagrees with the rest (the mistral shape)", () => {
@@ -137,6 +144,17 @@ describe("sortByDisagreement", () => {
     ];
     const rows = alignRunsGrid(runs, "match");
     expect(sortByDisagreement(rows).map((r) => r.id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("idsWithMultipleEpochs", () => {
+  test("flags ids that appear with more than one epoch", () => {
+    const runs = [
+      [s(19, 1, "C"), s(19, 2, "I"), s(20, 1, "C")],
+      [s(19, 1, "C"), s(19, 2, "C"), s(20, 1, "C")],
+    ];
+    const rows = alignRunsGrid(runs, "match");
+    expect(idsWithMultipleEpochs(rows)).toEqual(new Set([19]));
   });
 });
 
