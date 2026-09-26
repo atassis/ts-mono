@@ -22,7 +22,8 @@
 
 .runHeader {
   text-align: center;
-  max-width: 8rem;
+  max-width: 9rem;
+  white-space: normal;
 }
 
 .baselineButton {
@@ -34,9 +35,13 @@
   font-weight: 600;
   padding: 0.1rem 0.4rem;
   cursor: pointer;
-  max-width: 8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Wrap instead of ellipsizing: truncation hid the distinguishing suffix
+     on same-family models (qwen3.5-122b-nothink vs qwen3.6-27b-q3 vs
+     qwen3.8-27b all read as "qwen3..."). The full id is still one hover
+     away via the header's title. */
+  max-width: 9rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .baselineActive {
@@ -122,4 +127,16 @@
 .patternSplit {
   color: var(--bs-warning-text-emphasis);
   font-weight: 600;
+}
+
+.patternAllFail {
+  color: var(--bs-danger-text-emphasis);
+  font-style: italic;
+}
+
+.summarySecondary {
+  display: block;
+  font-size: var(--inspect-font-size-smallest);
+  font-weight: normal;
+  color: var(--bs-secondary-color);
 }

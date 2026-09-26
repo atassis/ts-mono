@@ -4,7 +4,7 @@ import { FC } from "react";
 import { Log } from "../../client/api/types";
 import { valueAsString } from "../../utils/format";
 
-import { GridOutcome, GridRow } from "./alignRunsGrid";
+import { GridOutcome, GridRow, idsWithMultipleEpochs } from "./alignRunsGrid";
 import styles from "./RunsGrid.module.css";
 import { shortRunLabel } from "./shortRunLabel";
 
@@ -48,86 +48,112 @@ export const RunsGrid: FC<RunsGridProps> = ({
   onSelectBaseline,
   onSelectCell,
   onSelectRow,
-}) => (
-  <table className={styles.grid}>
-    <thead>
-      <tr>
-        <th className={styles.cornerHeader}>sample</th>
-        {runs.map((run, i) => (
-          <th
-            key={i}
-            className={styles.runHeader}
-            title={run?.model ?? run?.name}
-          >
-            <button
-              type="button"
-              className={clsx(
-                styles.baselineButton,
-                i === baselineIndex && styles.baselineActive
-              )}
-              onClick={() => onSelectBaseline(i)}
-              aria-pressed={i === baselineIndex}
-              title="Use as baseline for the pairwise view"
+}) => {
+  const allModels = runs
+    .map((run) => run?.model)
+    .filter((m): m is string => Boolean(m));
+  const multiEpochIds = idsWithMultipleEpochs(rows);
+
+  return (
+    <table className={styles.grid}>
+      <thead>
+        <tr>
+          <th className={styles.cornerHeader}>sample</th>
+          {runs.map((run, i) => (
+            <th
+              key={i}
+              className={styles.runHeader}
+              title={run?.model ?? run?.name}
             >
-              {shortRunLabel(run)}
-            </button>
-          </th>
-        ))}
-        <th className={styles.summaryHeader}>disagreement</th>
-      </tr>
-    </thead>
-    <tbody>
-      {rows.map((row) => (
-        <tr
-          key={row.key}
-          className={clsx(row.key === focusedKey && styles.focusedRow)}
-        >
-          <td>
-            <button
-              type="button"
-              className={styles.rowButton}
-              onClick={() => onSelectRow(row)}
-              title="Compare against the baseline"
-            >
-              {String(row.id)}
-              {row.epoch > 1 ? ` #${row.epoch}` : ""}
-            </button>
-          </td>
-          {row.cells.map((cell) => (
-            <td key={cell.runIndex} className={styles.cell}>
               <button
                 type="button"
-                className={clsx(styles.cellButton, kOutcomeClass[cell.outcome])}
-                onClick={() => onSelectCell(row, cell.runIndex)}
-                disabled={cell.outcome === "missing"}
-                title={
-                  cell.value === undefined
-                    ? cell.outcome
-                    : `${cell.outcome}: ${valueAsString(cell.value)}`
-                }
+                className={clsx(
+                  styles.baselineButton,
+                  i === baselineIndex && styles.baselineActive
+                )}
+                onClick={() => onSelectBaseline(i)}
+                aria-pressed={i === baselineIndex}
+                title="Use as baseline for the pairwise view"
               >
-                {kOutcomeGlyph[cell.outcome]}
+                {shortRunLabel(run, allModels)}
               </button>
-            </td>
+            </th>
           ))}
-          <td
-            className={clsx(
-              styles.summaryCell,
-              row.pattern === "outlier" && styles.patternOutlier,
-              row.pattern === "split" && styles.patternSplit
-            )}
-          >
-            {row.pattern === "no-data"
-              ? "—"
-              : `${Math.round(row.disagreement * 100)}%`}
-            {row.pattern === "outlier"
-              ? " (1 run)"
-              : row.pattern === "split"
-                ? " (split)"
-                : ""}
-          </td>
+          <th className={styles.summaryHeader}>disagreement</th>
         </tr>
-      ))}
-    </tbody>
-  </table>
-);
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          const outlierLabel =
+            row.outlierRunIndex === undefined
+              ? undefined
+              : shortRunLabel(runs[row.outlierRunIndex], allModels);
+          return (
+            <tr
+              key={row.key}
+              className={clsx(row.key === focusedKey && styles.focusedRow)}
+            >
+              <td>
+                <button
+                  type="button"
+                  className={styles.rowButton}
+                  onClick={() => onSelectRow(row)}
+                  title="Compare against the baseline"
+                >
+                  {String(row.id)}
+                  {multiEpochIds.has(row.id) ? ` #${row.epoch}` : ""}
+                </button>
+              </td>
+              {row.cells.map((cell) => (
+                <td key={cell.runIndex} className={styles.cell}>
+                  <button
+                    type="button"
+                    className={clsx(
+                      styles.cellButton,
+                      kOutcomeClass[cell.outcome]
+                    )}
+                    onClick={() => onSelectCell(row, cell.runIndex)}
+                    disabled={cell.outcome === "missing"}
+                    title={
+                      cell.value === undefined
+                        ? cell.outcome
+                        : `${cell.outcome}: ${valueAsString(cell.value)}`
+                    }
+                  >
+                    {kOutcomeGlyph[cell.outcome]}
+                  </button>
+                </td>
+              ))}
+              <td
+                className={clsx(
+                  styles.summaryCell,
+                  row.pattern === "outlier" && styles.patternOutlier,
+                  row.pattern === "split" && styles.patternSplit,
+                  row.pattern === "all-fail" && styles.patternAllFail
+                )}
+              >
+                {row.pattern === "no-data" ? (
+                  "—"
+                ) : row.pattern === "all-fail" ? (
+                  "unsolved by all: check task/scorer"
+                ) : row.pattern === "outlier" && outlierLabel ? (
+                  <>
+                    {outlierLabel} only
+                    <span className={styles.summarySecondary}>
+                      {Math.round(row.disagreement * 100)}% (1 run)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {Math.round(row.disagreement * 100)}%
+                    {row.pattern === "split" ? " (split)" : ""}
+                  </>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+};
