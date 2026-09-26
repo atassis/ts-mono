@@ -4,6 +4,7 @@ import { Log } from "../../client/api/types";
 
 import {
   candidatesForB,
+  distinguishingModelLabel,
   relativeLogPath,
   runMatchesQuery,
   runSearchHaystack,
@@ -142,6 +143,40 @@ describe("tasksDiffer", () => {
     expect(
       tasksDiffer(log({ name: "a", task: "x" }), log({ name: "b", task: "x" }))
     ).toBe(false);
+  });
+});
+
+describe("distinguishingModelLabel", () => {
+  const modelA = "openai-api/gw/qwen3.5-122b-nothink";
+  const modelB = "openai-api/gw/qwen3.6-27b-q3";
+  const modelC = "openai-api/gw/qwen3.8-27b";
+  const models = [modelA, modelB, modelC];
+
+  test("strips the prefix every model shares", () => {
+    expect(distinguishingModelLabel(modelA, models)).toBe(
+      "qwen3.5-122b-nothink"
+    );
+    expect(distinguishingModelLabel(modelB, models)).toBe("qwen3.6-27b-q3");
+  });
+
+  test("leaves the model alone with fewer than two models", () => {
+    expect(distinguishingModelLabel("openai-api/gw/qwen3.5", [])).toBe(
+      "openai-api/gw/qwen3.5"
+    );
+    expect(
+      distinguishingModelLabel("openai-api/gw/qwen3.5", [
+        "openai-api/gw/qwen3.5",
+      ])
+    ).toBe("openai-api/gw/qwen3.5");
+  });
+
+  test("leaves the model alone with no shared prefix", () => {
+    expect(
+      distinguishingModelLabel("openai/gpt-4o", [
+        "openai/gpt-4o",
+        "anthropic/claude",
+      ])
+    ).toBe("openai/gpt-4o");
   });
 });
 

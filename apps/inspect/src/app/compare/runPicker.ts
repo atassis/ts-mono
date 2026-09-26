@@ -44,6 +44,28 @@ export const candidatesForB = (
 ): Log[] =>
   !a || showAllTasks ? logs : logs.filter((log) => taskKey(log) === taskKey(a));
 
+// Strips whatever "/"-separated prefix every model in the list shares (e.g.
+// "openai-api/gw/") so the picker shows the part that actually distinguishes
+// runs — same-provider models like qwen3.5/3.6/3.8 otherwise render as an
+// identical truncated string. Keeps at least one segment.
+export const distinguishingModelLabel = (
+  model: string,
+  allModels: string[]
+): string => {
+  if (allModels.length < 2) return model;
+  const [first, ...rest] = allModels.map((m) => m.split("/"));
+  if (!first) return model;
+  const minSegments = Math.min(first.length, ...rest.map((s) => s.length));
+  let shared = 0;
+  while (
+    shared < minSegments - 1 &&
+    rest.every((s) => s[shared] === first[shared])
+  ) {
+    shared++;
+  }
+  return shared > 0 ? model.split("/").slice(shared).join("/") : model;
+};
+
 export const tasksDiffer = (a: Log | undefined, b: Log | undefined): boolean =>
   !!a && !!b && taskKey(a) !== taskKey(b);
 
