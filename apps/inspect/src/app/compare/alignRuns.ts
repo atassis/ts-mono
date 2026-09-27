@@ -82,7 +82,7 @@ const isFiniteNumberString = (value: string): boolean => {
 // exact-case sentinels checked before any type coercion, so lowercase
 // letters fall through to the string branch below (and, unlike Python,
 // unmappable values return undefined instead of a 0.0 fallback).
-const toNumber = (value: ScoreValue | undefined): number | undefined => {
+export const toNumber = (value: ScoreValue | undefined): number | undefined => {
   if (value === "C") return 1;
   if (value === "P") return 0.5;
   if (value === "I" || value === "N") return 0;
