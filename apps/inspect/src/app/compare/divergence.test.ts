@@ -10,7 +10,7 @@ import {
 } from "@tsmono/inspect-common/testing";
 import { Event } from "@tsmono/inspect-common/types";
 
-import { firstDivergence, stepsOf } from "./divergence";
+import { firstDivergence, stepsOf, terminalDivergence } from "./divergence";
 
 const modelEvent = (
   text: string,
@@ -52,6 +52,7 @@ describe("stepsOf", () => {
         eventIndex: 0,
         function: "apply_patch",
         args: '{"diff":"x","path":"a.py"}',
+        actionClass: "run",
       },
     ]);
   });
@@ -199,5 +200,97 @@ describe("firstDivergence", () => {
       reason: "length",
       firstTextDivergence: undefined,
     });
+  });
+});
+
+const bash = (
+  command: string
+): { function: string; arguments: Record<string, unknown> } => ({
+  function: "bash",
+  arguments: { command },
+});
+const submit = (
+  answer: string
+): { function: string; arguments: Record<string, unknown> } => ({
+  function: "submit",
+  arguments: { answer },
+});
+
+describe("stepsOf tool-call action classes", () => {
+  test.each([
+    ["cat /work/calc.py", "read"],
+    ["ls -la /work", "read"],
+    ["cd /work && python3 -m pytest -q", "test"],
+    ["sed -i 's/a/b/' /work/calc.py", "write"],
+    ["cat <<EOF > /work/calc.py\nprint(1)\nEOF", "write"],
+    ["echo hi > /work/out.txt", "write"],
+    ["cd /work && python3 join.py && diff report.csv expected.csv", "read"],
+    ["bash /work/run.sh", "run"],
+  ] as const)("classifies %s as %s", (command, expected) => {
+    const [step] = stepsOf([modelEvent("", [bash(command)])]);
+    expect(step).toMatchObject({ actionClass: expected });
+  });
+
+  test("submit is its own class regardless of argument shape", () => {
+    const [step] = stepsOf([modelEvent("", [submit("the fix")])]);
+    expect(step).toMatchObject({ actionClass: "submit" });
+  });
+});
+
+describe("terminalDivergence", () => {
+  // Shaped after the real agentic-repo failure mode: mistral-small-4 reads
+  // and diagnoses, then submits without ever running a write command;
+  // gemma-26b edits the file, re-runs tests, then submits. Index-based
+  // firstDivergence lands this at step 0 ("narrate" vs "act first") --
+  // true but not the story; terminalDivergence names the real gap.
+  test("names the missing write when one side never edits before submitting", () => {
+    const mistral = stepsOf([
+      modelEvent("Let me look at the code."),
+      modelEvent("", [bash("cd /work && python3 -m pytest -q")]),
+      modelEvent("I can see the bug now."),
+      modelEvent("", [bash("cat /work/calc.py")]),
+      modelEvent("Here's the fix, as text."),
+      modelEvent("", [submit("change `n < 1` to `n <= 1`")]),
+    ]);
+    const gemma = stepsOf([
+      modelEvent("", [bash("cat /work/calc.py")]),
+      modelEvent("", [bash("cd /work && python3 -m pytest -q")]),
+      modelEvent("", [bash("sed -i 's/n < 1/n <= 1/' /work/calc.py")]),
+      modelEvent("", [bash("cd /work && python3 -m pytest -q")]),
+      modelEvent("", [submit("fixed")]),
+    ]);
+
+    const result = terminalDivergence(mistral, gemma);
+
+    expect(result.a).toEqual({
+      reads: 1,
+      writes: 0,
+      tests: 1,
+      runs: 0,
+      submitted: true,
+    });
+    expect(result.b).toEqual({
+      reads: 1,
+      writes: 1,
+      tests: 2,
+      runs: 0,
+      submitted: true,
+    });
+    expect(result.summary).toBe(
+      "A read 1 time(s), ran tests 1 time(s), then submitted; " +
+        "B read 1 time(s), ran tests 2 time(s), edited 1 time(s), then submitted"
+    );
+  });
+
+  test("names an unsubmitted turn", () => {
+    const stopped = stepsOf([modelEvent("", [bash("ls /work")])]);
+    const finished = stepsOf([
+      modelEvent("", [bash("sed -i 's/a/b/' /work/f.py")]),
+      modelEvent("", [submit("done")]),
+    ]);
+    expect(terminalDivergence(stopped, finished).summary).toBe(
+      "A read 1 time(s), then ended its turn without submitting; " +
+        "B edited 1 time(s), then submitted"
+    );
   });
 });

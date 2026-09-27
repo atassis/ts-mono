@@ -13,10 +13,13 @@ export interface AssistantTextStep extends StepBase {
   text: string;
 }
 
+export type ToolActionClass = "read" | "write" | "test" | "run" | "submit";
+
 export interface ToolCallStep extends StepBase {
   kind: "tool-call";
   function: string;
   args: string;
+  actionClass: ToolActionClass;
 }
 
 export interface ToolResultStep extends StepBase {
@@ -53,6 +56,33 @@ const canonicalize = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
+// Coarse action class for a bash-shaped tool call, inferred from its
+// `command` string. Heuristic and shell-agentic-task-specific (this is the
+// shape agentic-repo's bash/submit tools take), not a general tool-schema
+// parser: a genuinely new tool surface gets its own classifyToolCall case,
+// not a broadened regex here. `write` must be checked before `read` --
+// e.g. "cat <<EOF > file.py" contains "cat" but is a write, not a read.
+const WRITE_CMD =
+  /\bsed -i\b|\bcat\s*<<|>\s*\/[\w./-]+|>\s*[\w.-]+\.\w+|\btee\b|\bcp\b|\bmv\b|open\([^)]*["']w["']\)/;
+const TEST_CMD = /\bpytest\b|\bunittest\b|\bgo test\b|\bnpm test\b|\bjest\b/;
+const READ_CMD = /\b(cat|ls|head|tail|grep|find|wc|diff|cut|less|more)\b/;
+
+const classifyBashCommand = (command: string): ToolActionClass => {
+  if (WRITE_CMD.test(command)) return "write";
+  if (TEST_CMD.test(command)) return "test";
+  if (READ_CMD.test(command)) return "read";
+  return "run";
+};
+
+const classifyToolCall = (
+  functionName: string,
+  args: Record<string, unknown>
+): ToolActionClass => {
+  if (functionName === "submit") return "submit";
+  const command = args.command;
+  return typeof command === "string" ? classifyBashCommand(command) : "run";
+};
+
 const resultToText = (
   result: string | number | boolean | Content | Content[]
 ): string => {
@@ -79,6 +109,7 @@ const stepsForModelEvent = (
       eventIndex,
       function: call.function,
       args: canonicalize(call.arguments),
+      actionClass: classifyToolCall(call.function, call.arguments),
     });
   }
   return steps;
@@ -229,4 +260,90 @@ export const firstDivergence = (a: Step[], b: Step[]): DivergenceResult => {
   }
 
   return { kind: "identical" };
+};
+
+export interface TranscriptSummary {
+  reads: number;
+  writes: number;
+  tests: number;
+  runs: number;
+  submitted: boolean;
+}
+
+export const summarizeTranscript = (steps: Step[]): TranscriptSummary => {
+  const summary: TranscriptSummary = {
+    reads: 0,
+    writes: 0,
+    tests: 0,
+    runs: 0,
+    submitted: false,
+  };
+  for (const step of steps) {
+    if (step.kind !== "tool-call") continue;
+    switch (step.actionClass) {
+      case "read":
+        summary.reads++;
+        break;
+      case "write":
+        summary.writes++;
+        break;
+      case "test":
+        summary.tests++;
+        break;
+      case "run":
+        summary.runs++;
+        break;
+      case "submit":
+        summary.submitted = true;
+        break;
+    }
+  }
+  return summary;
+};
+
+const describeTerminal = (summary: TranscriptSummary): string => {
+  const actions: string[] = [];
+  if (summary.reads > 0) actions.push(`read ${summary.reads} time(s)`);
+  if (summary.tests > 0) actions.push(`ran tests ${summary.tests} time(s)`);
+  if (summary.writes > 0) actions.push(`edited ${summary.writes} time(s)`);
+  if (summary.runs > 0)
+    actions.push(`ran other commands ${summary.runs} time(s)`);
+  const actionsPhrase =
+    actions.length > 0 ? actions.join(", ") : "took no tool actions";
+  return summary.submitted
+    ? `${actionsPhrase}, then submitted`
+    : `${actionsPhrase}, then ended its turn without submitting`;
+};
+
+export interface TerminalDivergenceResult {
+  a: TranscriptSummary;
+  b: TranscriptSummary;
+  summary: string;
+}
+
+/**
+ * Index-based `firstDivergence` is exact but brittle for agentic
+ * transcripts: a "narrate first" vs "act first" model pair, or two runs
+ * that read files in a different order, land the reported divergence on
+ * an incidental first step rather than the behavior that actually decided
+ * the outcome (evidence: on agentic-repo, mistral-small-4's 8 failures
+ * against gemma-26b all land firstDivergence at step 0 or 1 -- "step-kind"
+ * or "tool-args" -- never near the real gap, which is that mistral never
+ * issues a write command before submitting). This reports each side's
+ * tool-call action-class tally instead of a step index, so "one side never
+ * edited a file" reads directly rather than as a coincidence of ordering.
+ * Complements, not replaces, `firstDivergence` -- prefer this when the two
+ * sides' tool-call sequences aren't expected to line up step-for-step.
+ */
+export const terminalDivergence = (
+  a: Step[],
+  b: Step[]
+): TerminalDivergenceResult => {
+  const summaryA = summarizeTranscript(a);
+  const summaryB = summarizeTranscript(b);
+  return {
+    a: summaryA,
+    b: summaryB,
+    summary: `A ${describeTerminal(summaryA)}; B ${describeTerminal(summaryB)}`,
+  };
 };
