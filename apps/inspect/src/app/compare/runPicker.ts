@@ -9,6 +9,37 @@ export const relativeLogPath = (log: Log, logDir: string): string => {
     : log.name;
 };
 
+/** A run's name for display: its directory under the log dir, which is how
+ *  repeated runs of one model (a/b tests, retries) are told apart. */
+export const runDirLabel = (log: Log, logDir: string): string => {
+  const path = relativeLogPath(log, logDir);
+  const slash = path.lastIndexOf("/");
+  return slash >= 0 ? path.slice(0, slash) : path.replace(/\.eval$/, "");
+};
+
+export interface RunProgress {
+  done?: number;
+  samples?: number;
+  epochs: number;
+}
+
+export const runProgressOf = (log: Log): RunProgress => ({
+  done: log.header?.sampleCount,
+  samples: log.header?.eval.dataset.samples ?? undefined,
+  epochs: log.header?.eval.config.epochs ?? 1,
+});
+
+export const formatRunProgress = ({
+  done,
+  samples,
+  epochs,
+}: RunProgress): string => {
+  if (samples === undefined) return done === undefined ? "" : String(done);
+  const total = samples * epochs;
+  if (done !== undefined && done < total) return `${done}/${total}`;
+  return epochs > 1 ? `${samples}×${epochs}` : String(samples);
+};
+
 const runTimestamp = (log: Log): number => {
   const t = log.started_at ?? log.completed_at;
   return t ? new Date(t).getTime() : 0;

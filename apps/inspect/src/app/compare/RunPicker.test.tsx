@@ -88,7 +88,7 @@ describe("RunPicker", () => {
 
   test("closed picker shows the selected run", () => {
     const selected = log({
-      name: "a.eval",
+      name: "file:///logs/bench/gpt-4o-aa1/a.eval",
       model: "openai/gpt-4o",
       task: "bench",
     });
@@ -102,6 +102,6 @@ describe("RunPicker", () => {
         onSelect={vi.fn()}
       />
     );
-    expect(screen.getByText("openai/gpt-4o")).toBeTruthy();
+    expect(screen.getByText("bench/gpt-4o-aa1")).toBeTruthy();
   });
 });

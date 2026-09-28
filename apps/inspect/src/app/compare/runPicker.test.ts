@@ -5,7 +5,9 @@ import { Log } from "../../client/api/types";
 import {
   candidatesForB,
   distinguishingModelLabel,
+  formatRunProgress,
   relativeLogPath,
+  runDirLabel,
   runMatchesQuery,
   runSearchHaystack,
   sortRunsNewestFirst,
@@ -195,5 +197,43 @@ describe("taskVersionDiffers", () => {
     const a = log({ name: "a", task: "x", task_version: 1 });
     const b = log({ name: "b", task: "y", task_version: 2 });
     expect(taskVersionDiffers(a, b)).toBe(false);
+  });
+});
+
+describe("runDirLabel", () => {
+  test("names a run by its directory under the log dir", () => {
+    const l = log({ name: "file:///logs/bench/gemma-aa1/2026-09-27_x.eval" });
+    expect(runDirLabel(l, "file:///logs")).toBe("bench/gemma-aa1");
+  });
+
+  test("falls back to the file name for a log at the root", () => {
+    const l = log({ name: "file:///logs/2026-09-24_demo.eval" });
+    expect(runDirLabel(l, "file:///logs")).toBe("2026-09-24_demo");
+  });
+});
+
+describe("formatRunProgress", () => {
+  test("a finished run reads as samples x epochs", () => {
+    expect(formatRunProgress({ done: 96, samples: 16, epochs: 6 })).toBe(
+      "16×6"
+    );
+  });
+
+  test("a single-epoch run drops the multiplier", () => {
+    expect(formatRunProgress({ done: 16, samples: 16, epochs: 1 })).toBe("16");
+  });
+
+  test("an unfinished run reads as done out of total", () => {
+    expect(formatRunProgress({ done: 38, samples: 16, epochs: 6 })).toBe(
+      "38/96"
+    );
+  });
+
+  test("unknown size shows only what is done", () => {
+    expect(formatRunProgress({ done: 5, epochs: 2 })).toBe("5");
+  });
+
+  test("empty when nothing is known", () => {
+    expect(formatRunProgress({ epochs: 1 })).toBe("");
   });
 });

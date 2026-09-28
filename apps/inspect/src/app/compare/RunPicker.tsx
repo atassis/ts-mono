@@ -11,8 +11,11 @@ import { ApplicationIcons } from "../appearance/icons";
 
 import {
   distinguishingModelLabel,
+  formatRunProgress,
   relativeLogPath,
+  runDirLabel,
   runMatchesQuery,
+  runProgressOf,
   runSearchHaystack,
 } from "./runPicker";
 import styles from "./RunPicker.module.css";
@@ -41,39 +44,68 @@ interface RunRowProps {
   /** Every model in the picker's list, used to strip the prefix they all
    *  share so near-identical model names stay distinguishable. */
   allModels: string[];
+  /** The closed picker's one-line form: run, score and progress only. */
+  compact?: boolean;
 }
 
-/** Dense one-line summary of a run, shared by the closed picker and its
- *  option list so the selected value reads identically either way. */
-const RunRow: FC<RunRowProps> = ({ log, logDir, allModels }) => {
+/** One run as a row of fixed columns, so values line up down the list and
+ *  the closed picker reads like the option it came from. */
+const RunRow: FC<RunRowProps> = ({ log, logDir, allModels, compact }) => {
   const { icon, className } = statusIcon(log.status);
   const metric = log.primary_metric;
-  const modelLabel = log.model
-    ? distinguishingModelLabel(log.model, allModels)
-    : "—";
-  return (
-    <span className={styles.row}>
+  const runLabel = runDirLabel(log, logDir);
+  const progress = formatRunProgress(runProgressOf(log));
+  const statusLabel =
+    log.status && log.status !== "success" ? log.status : undefined;
+  const cells = (
+    <>
       <i className={clsx(icon, className, styles.rowIcon)} />
-      <span className={styles.rowModel} title={log.model}>
-        {modelLabel}
+      <span className={styles.rowRun} title={relativeLogPath(log, logDir)}>
+        {runLabel}
       </span>
-      <span className={styles.rowTask} title={log.task ?? undefined}>
-        {log.task ?? relativeLogPath(log, logDir)}
+      {compact ? null : (
+        <>
+          <span className={styles.rowModel} title={log.model}>
+            {log.model ? distinguishingModelLabel(log.model, allModels) : "—"}
+          </span>
+          <span className={styles.rowTask} title={log.task ?? undefined}>
+            {log.task ?? ""}
+          </span>
+        </>
+      )}
+      <span className={styles.rowMetric} title={metric?.name}>
+        {metric ? formatPrettyDecimal(metric.value) : "—"}
       </span>
-      {metric ? (
-        <span className={styles.rowMetric}>
-          {metric.name}: {formatPrettyDecimal(metric.value)}
-        </span>
-      ) : null}
-      {log.header?.sampleCount !== undefined ? (
-        <span className={styles.rowMuted}>
-          {log.header.sampleCount} samples
-        </span>
-      ) : null}
-      <span className={styles.rowMuted}>{shortDate(log.started_at)}</span>
-    </span>
+      <span className={styles.rowMuted}>{progress}</span>
+      {compact ? (
+        statusLabel ? (
+          <span className={className}>{statusLabel}</span>
+        ) : null
+      ) : (
+        <>
+          <span className={className}>{statusLabel ?? ""}</span>
+          <span className={styles.rowMuted}>{shortDate(log.started_at)}</span>
+        </>
+      )}
+    </>
+  );
+  return (
+    <span className={compact ? styles.compactRow : styles.row}>{cells}</span>
   );
 };
+
+const RunHeader: FC = () => (
+  <div className={clsx(styles.row, styles.header)} aria-hidden>
+    <span />
+    <span>Run</span>
+    <span>Model</span>
+    <span>Task</span>
+    <span>Score</span>
+    <span>Samples</span>
+    <span>Status</span>
+    <span>Started</span>
+  </div>
+);
 
 interface RunPickerProps {
   id: string;
@@ -193,7 +225,12 @@ export const RunPicker: FC<RunPickerProps> = ({
         onClick={() => (open ? closeMenu() : openMenu())}
       >
         {selected ? (
-          <RunRow log={selected} logDir={logDir} allModels={allModels} />
+          <RunRow
+            log={selected}
+            logDir={logDir}
+            allModels={allModels}
+            compact
+          />
         ) : (
           <span className={styles.placeholder}>choose a log…</span>
         )}
@@ -231,6 +268,7 @@ export const RunPicker: FC<RunPickerProps> = ({
                 onKeyDown={handleInputKeyDown}
               />
             </div>
+            <RunHeader />
             <ul role="listbox" className={styles.list} aria-label={ariaLabel}>
               {filtered.length === 0 ? (
                 <li className={styles.empty}>No matching runs</li>
