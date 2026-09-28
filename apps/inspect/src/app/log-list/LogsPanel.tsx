@@ -27,7 +27,6 @@ import { logsUrl, tasksUrl, useLogRouteParams } from "../routing/url";
 import { useEvalSet } from "../server/useEvalSet";
 import { ColumnSelectorPopover } from "../shared/ColumnSelectorPopover";
 
-import { CompareRunsButton } from "./CompareRunsButton";
 import {
   fileLogIdentity,
   fileLogItem,
@@ -339,7 +338,6 @@ export const LogsPanel: FC<LogsPanelProps> = ({
           selectedSegment={mode === "tasks" ? "tasks" : "logs"}
         />
         {flowData && <FlowButton />}
-        <CompareRunsButton />
       </ApplicationNavbar>
 
       <ColumnSelectorPopover
