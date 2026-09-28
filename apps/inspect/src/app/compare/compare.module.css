@@ -219,3 +219,19 @@
 .flaky {
   color: var(--bs-secondary-color);
 }
+.sides {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+.syncToggle {
+  display: flex;
+  align-items: center;
+}
+.infoText {
+  margin: 0;
+  max-width: 22rem;
+  font-size: var(--inspect-font-size-small);
+}

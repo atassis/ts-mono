@@ -1,7 +1,8 @@
-import { FC, useState } from "react";
+import { FC, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 
 import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
+import { useEventListener } from "@tsmono/react/hooks";
 
 import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
@@ -19,6 +20,7 @@ import {
 } from "./alignRuns";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
+import { InfoButton } from "./InfoButton";
 import { RunPicker } from "./RunPicker";
 import {
   candidatesForB,
@@ -27,6 +29,7 @@ import {
   taskVersionDiffers,
 } from "./runPicker";
 import { ScorerSelect } from "./ScorerSelect";
+import { makeScrollSync } from "./scrollSync";
 import { SideTranscript } from "./SideTranscript";
 
 const runIdentity = (log: Log | undefined): string =>
@@ -39,6 +42,49 @@ export const ComparePage: FC = () => {
   const b = params.get("b") ?? undefined;
   const selectedKey = params.get("sample") ?? undefined;
   const [showAllTasks, setShowAllTasks] = useState(false);
+  const [syncScroll, setSyncScroll] = useState(true);
+  const [scrollSync] = useState(makeScrollSync);
+  const [sides, setSides] = useState<HTMLDivElement | null>(null);
+  const paneA = useRef<HTMLDivElement>(null);
+  const paneB = useRef<HTMLDivElement>(null);
+  // The side scrolled last while unsynced; re-syncing snaps the other to it.
+  const leader = useRef<"a" | "b">("a");
+
+  const toggleSync = (on: boolean): void => {
+    setSyncScroll(on);
+    const [from, to] = leader.current === "a" ? [paneA, paneB] : [paneB, paneA];
+    if (on && from.current && to.current)
+      scrollSync.snap(from.current, to.current);
+  };
+
+  // Wheel input moves both panes in the same frame; following the other
+  // pane's scroll event instead would lag it by a frame.
+  useEventListener(
+    sides,
+    "wheel",
+    (event) => {
+      if (!syncScroll || !paneA.current || !paneB.current) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? paneA.current.clientHeight
+            : 1;
+      scrollSync.scrollBoth(paneA.current, paneB.current, event.deltaY * unit);
+    },
+    { passive: false }
+  );
+
+  const onPaneScroll = (side: "a" | "b"): void => {
+    const [source, target] =
+      side === "a"
+        ? [paneA.current, paneB.current]
+        : [paneB.current, paneA.current];
+    if (!syncScroll) leader.current = side;
+    if (source) scrollSync.onScroll(source, target, syncScroll);
+  };
 
   // Kick off the dir listing sync — nothing else in this route mounts it,
   // unlike LogsPanel (its usual owner).
@@ -128,6 +174,26 @@ export const ComparePage: FC = () => {
             onSelect={(name) => update("scorer", name)}
           />
         ) : null}
+        {selected ? (
+          <span className={styles.syncToggle}>
+            <label className={styles.showAllTasks}>
+              <input
+                type="checkbox"
+                checked={syncScroll}
+                onChange={(e) => toggleSync(e.target.checked)}
+              />
+              Sync scroll
+            </label>
+            <InfoButton id="compare-sync-scroll-info" label="About sync scroll">
+              <p className={styles.infoText}>
+                Experimental. While on, A and B scroll by the same distance.
+                Turning it back on lines the other side up with the one you
+                scrolled last. Sides are not yet aligned by agent step, so
+                matching steps can drift apart; this will improve.
+              </p>
+            </InfoButton>
+          </span>
+        ) : null}
         {mismatchedTasks ? (
           <span role="alert" className={styles.warning}>
             different tasks — samples won&apos;t align
@@ -158,7 +224,7 @@ export const ComparePage: FC = () => {
           {!a || !b ? (
             <div className={styles.placeholder}>Pick a log for A and B</div>
           ) : selected ? (
-            <>
+            <div ref={setSides} className={styles.sides}>
               <div className={styles.side}>
                 <div className={styles.sideHeader}>
                   A · {runIdentity(logA)} ·{" "}
@@ -174,6 +240,8 @@ export const ComparePage: FC = () => {
                     id={selected.id}
                     epoch={selected.epoch}
                     side="a"
+                    paneRef={paneA}
+                    onScroll={() => onPaneScroll("a")}
                   />
                 ) : (
                   <div>not in A</div>
@@ -194,12 +262,14 @@ export const ComparePage: FC = () => {
                     id={selected.id}
                     epoch={selected.epoch}
                     side="b"
+                    paneRef={paneB}
+                    onScroll={() => onPaneScroll("b")}
                   />
                 ) : (
                   <div>not in B</div>
                 )}
               </div>
-            </>
+            </div>
           ) : (
             <div className={styles.placeholder}>Select a sample</div>
           )}

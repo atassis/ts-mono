@@ -1,12 +1,9 @@
 import clsx from "clsx";
-import { FC, useState } from "react";
-
-import { PopOver } from "@tsmono/react/components";
-
-import { ApplicationIcons } from "../appearance/icons";
+import { FC } from "react";
 
 import styles from "./CategoryLegend.module.css";
 import compareStyles from "./compare.module.css";
+import { InfoButton } from "./InfoButton";
 
 const kLegend: Array<{
   label: string;
@@ -61,41 +58,16 @@ const kLegend: Array<{
   },
 ];
 
-export const CategoryLegend: FC = () => {
-  const [open, setOpen] = useState(false);
-  const [buttonEl, setButtonEl] = useState<HTMLButtonElement | null>(null);
-
-  return (
-    <>
-      <button
-        ref={setButtonEl}
-        type="button"
-        aria-label="Category legend"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        className={styles.button}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <i className={ApplicationIcons.info} />
-      </button>
-      <PopOver
-        id="compare-category-legend"
-        isOpen={open}
-        setIsOpen={setOpen}
-        positionEl={buttonEl}
-        placement="bottom-start"
-        hoverDelay={0}
-      >
-        <ul className={styles.list}>
-          {kLegend.map(({ label, swatch, meaning }) => (
-            <li key={label} className={styles.item}>
-              <span className={clsx(styles.swatch, swatch)} />
-              <span className={styles.category}>{label}</span>
-              <span className={styles.meaning}>{meaning}</span>
-            </li>
-          ))}
-        </ul>
-      </PopOver>
-    </>
-  );
-};
+export const CategoryLegend: FC = () => (
+  <InfoButton id="compare-category-legend" label="Category legend">
+    <ul className={styles.list}>
+      {kLegend.map(({ label, swatch, meaning }) => (
+        <li key={label} className={styles.item}>
+          <span className={clsx(styles.swatch, swatch)} />
+          <span className={styles.category}>{label}</span>
+          <span className={styles.meaning}>{meaning}</span>
+        </li>
+      ))}
+    </ul>
+  </InfoButton>
+);

@@ -1,4 +1,4 @@
-import { FC, useRef } from "react";
+import { FC, RefObject, useRef } from "react";
 
 import { TranscriptLayout } from "@tsmono/inspect-components/transcript";
 import {
@@ -17,6 +17,9 @@ interface SideTranscriptProps {
   id: string | number;
   epoch: number;
   side: "a" | "b";
+  /** The pane that scrolls, for a parent that syncs two panes. */
+  paneRef?: RefObject<HTMLDivElement | null>;
+  onScroll?: () => void;
 }
 
 export const SideTranscript: FC<SideTranscriptProps> = ({
@@ -25,8 +28,11 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
   id,
   epoch,
   side,
+  paneRef,
+  onScroll,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const ownRef = useRef<HTMLDivElement>(null);
+  const scrollRef = paneRef ?? ownRef;
   const data = useEvalSampleData(logDir, { id, epoch, logFile });
 
   if (data.error) {
@@ -49,7 +55,7 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
 
   return (
     <ExtendedFindProvider>
-      <div ref={scrollRef} className={styles.pane}>
+      <div ref={scrollRef} className={styles.pane} onScroll={onScroll}>
         <TranscriptLayout
           events={data.sample.events}
           scrollRef={scrollRef}
