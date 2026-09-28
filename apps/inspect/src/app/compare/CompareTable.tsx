@@ -4,9 +4,8 @@ import { FC, useState } from "react";
 import { AlignedSample } from "./alignRuns";
 import { CategoryLegend } from "./CategoryLegend";
 import styles from "./compare.module.css";
+import { EpochStrip } from "./EpochStrip";
 import {
-  EpochCell,
-  EpochMark,
   groupBySample,
   GroupCategory,
   SampleGroup,
@@ -43,54 +42,6 @@ const kCategoryClass: Partial<Record<GroupCategory, string>> = {
   regressed: styles.regressed,
   error: styles.error,
 };
-
-const kMark: Record<EpochMark, { glyph: string; className: string }> = {
-  pass: { glyph: "●", className: styles.markPass },
-  fail: { glyph: "✕", className: styles.markFail },
-  error: { glyph: "!", className: styles.markError },
-  other: { glyph: "?", className: styles.markOther },
-  missing: { glyph: "·", className: styles.markMissing },
-};
-
-interface EpochStripProps {
-  side: "A" | "B";
-  cells: EpochCell[];
-  pass: number;
-  scored: number;
-  selectedKey: string | undefined;
-  onSelect: (key: string) => void;
-}
-
-const EpochStrip: FC<EpochStripProps> = ({
-  side,
-  cells,
-  pass,
-  scored,
-  selectedKey,
-  onSelect,
-}) => (
-  <span className={styles.strip}>
-    {cells.map((cell) => (
-      <button
-        key={cell.key}
-        type="button"
-        className={clsx(
-          styles.mark,
-          kMark[cell.mark].className,
-          cell.key === selectedKey && styles.markSelected
-        )}
-        title={`${side} epoch ${cell.epoch}: ${cell.mark}`}
-        aria-label={`${side} epoch ${cell.epoch}: ${cell.mark}`}
-        onClick={() => onSelect(cell.key)}
-      >
-        {kMark[cell.mark].glyph}
-      </button>
-    ))}
-    <span className={styles.tally}>
-      {pass}/{scored}
-    </span>
-  </span>
-);
 
 interface CompareTableProps {
   rows: AlignedSample[];
@@ -164,7 +115,7 @@ export const CompareTable: FC<CompareTableProps> = ({
                 </td>
                 <td>
                   <EpochStrip
-                    side="A"
+                    label="A"
                     cells={g.a}
                     pass={g.passA}
                     scored={g.scoredA}
@@ -174,7 +125,7 @@ export const CompareTable: FC<CompareTableProps> = ({
                 </td>
                 <td>
                   <EpochStrip
-                    side="B"
+                    label="B"
                     cells={g.b}
                     pass={g.passB}
                     scored={g.scoredB}

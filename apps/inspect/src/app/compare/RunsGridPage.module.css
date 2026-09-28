@@ -5,32 +5,18 @@
   grid-template-rows: max-content max-content 1fr;
 }
 
-.pickers {
+.caption {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
+  gap: 0.5rem 1rem;
   padding: 0.5rem 0.75rem;
 }
 
-.pickerSlot {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.removeButton {
-  border: none;
-  background: none;
+.captionText {
+  max-width: 48rem;
   color: var(--bs-secondary-color);
-  cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
-.scorer {
   font-size: var(--inspect-font-size-small);
-  color: var(--bs-secondary-color);
 }
 
 .hint,
@@ -40,5 +26,5 @@
 
 .gridWrap {
   overflow: auto;
-  padding: 0 0.75rem;
+  padding: 0 0.75rem 1rem;
 }

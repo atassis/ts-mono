@@ -235,3 +235,11 @@
   max-width: 22rem;
   font-size: var(--inspect-font-size-small);
 }
+.moreRuns {
+  border: none;
+  padding: 0;
+  background: none;
+  color: var(--bs-link-color);
+  font-size: var(--inspect-font-size-small);
+  cursor: pointer;
+}

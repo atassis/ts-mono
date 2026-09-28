@@ -1,8 +1,8 @@
 import { FC, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
-import { useEventListener } from "@tsmono/react/hooks";
+import { navigateAndForget, useEventListener } from "@tsmono/react/hooks";
 
 import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
@@ -38,6 +38,7 @@ const runIdentity = (log: Log | undefined): string =>
 export const ComparePage: FC = () => {
   const logDir = useLogDir();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const a = params.get("a") ?? undefined;
   const b = params.get("b") ?? undefined;
   const selectedKey = params.get("sample") ?? undefined;
@@ -167,6 +168,21 @@ export const ComparePage: FC = () => {
             }
           />
         </label>
+        {a && b ? (
+          <button
+            type="button"
+            className={styles.moreRuns}
+            onClick={() => {
+              const grid = new URLSearchParams([
+                ["run", a],
+                ["run", b],
+              ]);
+              navigateAndForget(navigate, `/compare/grid?${grid.toString()}`);
+            }}
+          >
+            + more runs
+          </button>
+        ) : null}
         {a && b && !loading ? (
           <ScorerSelect
             options={scorers}

@@ -2,7 +2,7 @@ import { FC, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
-import { navigateAndForget, useEventListener } from "@tsmono/react/hooks";
+import { navigateAndForget } from "@tsmono/react/hooks";
 
 import { useLogDir } from "../../app_config";
 import {
@@ -11,15 +11,11 @@ import {
   useSampleSummariesMany,
 } from "../../log_data";
 import { ApplicationNavbar } from "../navbar/ApplicationNavbar";
+import { ViewSegmentedControl } from "../navbar/ViewSegmentedControl";
 import { logsUrl } from "../routing/url";
 
-import {
-  alignRunsGrid,
-  firstCommonScorerN,
-  GridRow,
-  rowCompareTarget,
-  sortByDisagreement,
-} from "./alignRunsGrid";
+import { alignRunsGrid, firstCommonScorerN } from "./alignRunsGrid";
+import { groupGridBySample, sortGridSamples } from "./gridGroups";
 import { RunPicker } from "./RunPicker";
 import { sortRunsNewestFirst } from "./runPicker";
 import { RunsGrid } from "./RunsGrid";
@@ -50,10 +46,6 @@ export const RunsGridPage: FC = () => {
   const [params, setParams] = useSearchParams();
   const runNames = params.getAll(kRunParam);
   const [baselineIndex, setBaselineIndex] = useState(0);
-  const [comparedIndex, setComparedIndex] = useState<number | undefined>(
-    undefined
-  );
-  const [focusedKey, setFocusedKey] = useState<string | undefined>(undefined);
 
   const sync = useLogsSync(logDir, "");
   const logs = useLogListing(logDir);
@@ -67,14 +59,6 @@ export const RunsGridPage: FC = () => {
   const addRun = (name: string): void => {
     const next = new URLSearchParams(params);
     next.append(kRunParam, name);
-    setParams(next);
-  };
-  const replaceRun = (index: number, name: string): void => {
-    const next = new URLSearchParams(params);
-    const all = next.getAll(kRunParam);
-    all[index] = name;
-    next.delete(kRunParam);
-    for (const n of all) next.append(kRunParam, n);
     setParams(next);
   };
   const removeRun = (index: number): void => {
@@ -94,43 +78,27 @@ export const RunsGridPage: FC = () => {
   const scorer = firstCommonScorerN(sampleLists);
   const rows =
     runNames.length >= 2
-      ? sortByDisagreement(alignRunsGrid(sampleLists, scorer))
+      ? sortGridSamples(groupGridBySample(alignRunsGrid(sampleLists, scorer)))
       : [];
+  const task = runLogs.find((log) => log?.task)?.task;
 
-  const goToPairwise = (row: GridRow, otherIndex: number | undefined): void => {
-    if (otherIndex === undefined) return;
+  const openPair = (other: number, key: string): void => {
     const a = runNames[baselineIndex];
-    const b = runNames[otherIndex];
-    if (!a || !b) return;
-    navigateAndForget(navigate, pairwiseUrl(a, b, row.key));
+    const b = runNames[other];
+    if (a && b) navigateAndForget(navigate, pairwiseUrl(a, b, key));
   };
 
-  useEventListener(window, "keydown", (event) => {
-    if (rows.length === 0 || runNames.length < 2) return;
-    const row = rows.find((r) => r.key === focusedKey) ?? rows[0];
-    if (!row) return;
-    if (event.key === "[" || event.key === "]") {
-      event.preventDefault();
-      const others = row.cells
-        .map((c) => c.runIndex)
-        .filter((i) => i !== baselineIndex);
-      const [firstOther] = others;
-      if (firstOther === undefined) return;
-      const current =
-        comparedIndex ?? rowCompareTarget(row, baselineIndex) ?? firstOther;
-      const at = others.indexOf(current);
-      const nextAt =
-        event.key === "]"
-          ? (at + 1) % others.length
-          : (at - 1 + others.length) % others.length;
-      const next = others[nextAt];
-      if (next === undefined) return;
-      setFocusedKey(row.key);
-      setComparedIndex(next);
-    } else if (event.key === "Enter") {
-      goToPairwise(row, comparedIndex ?? rowCompareTarget(row, baselineIndex));
-    }
-  });
+  const addRunPicker = (
+    <RunPicker
+      id="runs-grid-picker-add"
+      ariaLabel="Add run"
+      logs={allRuns.filter((log) => !runNames.includes(log.name))}
+      logDir={logDir}
+      selected={undefined}
+      onSelect={(l) => addRun(l.name)}
+      placeholder="+ add run"
+    />
+  );
 
   return (
     <div className={styles.page}>
@@ -138,51 +106,29 @@ export const RunsGridPage: FC = () => {
         currentPath={undefined}
         fnNavigationUrl={logsUrl}
         loading={sync.busy || loading}
-      />
-      <div className={styles.pickers}>
-        {runNames.map((_, i) => {
-          const log = runLogs[i];
-          return (
-            <div key={i} className={styles.pickerSlot}>
-              <RunPicker
-                id={`runs-grid-picker-${i}`}
-                ariaLabel={`Run ${i + 1}`}
-                logs={allRuns}
-                logDir={logDir}
-                selected={log}
-                onSelect={(l) => replaceRun(i, l.name)}
-              />
-              <button
-                type="button"
-                className={styles.removeButton}
-                onClick={() => removeRun(i)}
-                aria-label={`Remove run ${i + 1}`}
-              >
-                ×
-              </button>
-            </div>
-          );
-        })}
-        <RunPicker
-          id="runs-grid-picker-add"
-          ariaLabel="Add run"
-          logs={allRuns.filter((log) => !runNames.includes(log.name))}
-          logDir={logDir}
-          selected={undefined}
-          onSelect={(l) => addRun(l.name)}
-        />
-        {scorer ? (
-          <span className={styles.scorer}>scorer: {scorer}</span>
-        ) : null}
-      </div>
+      >
+        <ViewSegmentedControl selectedSegment="compare" />
+      </ApplicationNavbar>
+      {runNames.length >= 2 ? (
+        <div className={styles.caption}>
+          <span className={styles.captionText}>
+            {runNames.length} runs{task ? ` of ${task}` : ""}
+            {scorer ? `, scored by ${scorer}` : ""}. Each cell shows a
+            run&apos;s epochs (● pass, ✕ fail) and how many it passed. Click a
+            row or mark to open it side by side with the baseline.
+          </span>
+          {addRunPicker}
+        </div>
+      ) : null}
       {error ? (
         <ErrorPanel
           title="Error"
           error={{ message: error.message, stack: error.stack }}
         />
-      ) : runNames.length < 3 ? (
+      ) : runNames.length < 2 ? (
         <div className={styles.hint}>
-          Pick 3 or more runs from the same log directory.
+          <p>Pick runs of the same task to compare them side by side.</p>
+          {addRunPicker}
         </div>
       ) : loading ? (
         <div className={styles.loading}>
@@ -194,23 +140,11 @@ export const RunsGridPage: FC = () => {
           <RunsGrid
             runs={runLogs}
             rows={rows}
+            scorer={scorer}
             baselineIndex={baselineIndex}
-            focusedKey={focusedKey}
             onSelectBaseline={setBaselineIndex}
-            onSelectCell={(row, runIndex) => {
-              setFocusedKey(row.key);
-              setComparedIndex(runIndex);
-              goToPairwise(
-                row,
-                runIndex === baselineIndex ? undefined : runIndex
-              );
-            }}
-            onSelectRow={(row) => {
-              setFocusedKey(row.key);
-              const target = rowCompareTarget(row, baselineIndex);
-              setComparedIndex(target);
-              goToPairwise(row, target);
-            }}
+            onRemoveRun={removeRun}
+            onOpen={openPair}
           />
         </div>
       )}

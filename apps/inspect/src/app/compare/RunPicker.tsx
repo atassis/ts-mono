@@ -117,6 +117,7 @@ interface RunPickerProps {
   /** Rendered inside the open menu, above the option list (e.g. B's
    *  "show all tasks" toggle). */
   menuHeader?: ReactNode;
+  placeholder?: string;
 }
 
 export const RunPicker: FC<RunPickerProps> = ({
@@ -127,6 +128,7 @@ export const RunPicker: FC<RunPickerProps> = ({
   selected,
   onSelect,
   menuHeader,
+  placeholder = "choose a log…",
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -232,7 +234,7 @@ export const RunPicker: FC<RunPickerProps> = ({
             compact
           />
         ) : (
-          <span className={styles.placeholder}>choose a log…</span>
+          <span className={styles.placeholder}>{placeholder}</span>
         )}
         <i className={clsx(ApplicationIcons.chevron.down, styles.chevron)} />
       </button>

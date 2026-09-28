@@ -2,13 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { SampleSummary } from "../../client/api/types";
 
-import {
-  alignRunsGrid,
-  firstCommonScorerN,
-  idsWithMultipleEpochs,
-  rowCompareTarget,
-  sortByDisagreement,
-} from "./alignRunsGrid";
+import { alignRunsGrid, firstCommonScorerN } from "./alignRunsGrid";
 
 const s = (
   id: string | number,
@@ -132,56 +126,5 @@ describe("firstCommonScorerN", () => {
 
   test("undefined when no scorer is in all runs", () => {
     expect(firstCommonScorerN([[s(1, 1, "C")], [s(1, 1)]])).toBeUndefined();
-  });
-});
-
-describe("sortByDisagreement", () => {
-  test("highest disagreement first; ties broken by id then epoch", () => {
-    const runs = [
-      [s(1, 1, "C"), s(2, 1, "C"), s(3, 1, "C")],
-      [s(1, 1, "C"), s(2, 1, "I"), s(3, 1, "C")],
-      [s(1, 1, "I"), s(2, 1, "I"), s(3, 1, "C")],
-    ];
-    const rows = alignRunsGrid(runs, "match");
-    expect(sortByDisagreement(rows).map((r) => r.id)).toEqual([1, 2, 3]);
-  });
-});
-
-describe("idsWithMultipleEpochs", () => {
-  test("flags ids that appear with more than one epoch", () => {
-    const runs = [
-      [s(19, 1, "C"), s(19, 2, "I"), s(20, 1, "C")],
-      [s(19, 1, "C"), s(19, 2, "C"), s(20, 1, "C")],
-    ];
-    const rows = alignRunsGrid(runs, "match");
-    expect(idsWithMultipleEpochs(rows)).toEqual(new Set([19]));
-  });
-});
-
-describe("rowCompareTarget", () => {
-  test("prefers the row's outlier over an arbitrary other run", () => {
-    const runs = [
-      [s(1, 1, "C")],
-      [s(1, 1, "C")],
-      [s(1, 1, "C")],
-      [s(1, 1, "I")],
-    ];
-    const [row] = alignRunsGrid(runs, "match");
-    expect(row).toBeDefined();
-    if (row) expect(rowCompareTarget(row, 0)).toBe(3);
-  });
-
-  test("baseline is itself the outlier: pick a run that actually differs", () => {
-    const runs = [[s(1, 1, "I")], [s(1, 1, "C")], [s(1, 1, "C")]];
-    const [row] = alignRunsGrid(runs, "match");
-    expect(row).toBeDefined();
-    if (row) expect(rowCompareTarget(row, 0)).toBe(1);
-  });
-
-  test("no disagreement at all: falls back to the first other run", () => {
-    const runs = [[s(1, 1, "C")], [s(1, 1, "C")], [s(1, 1, "C")]];
-    const [row] = alignRunsGrid(runs, "match");
-    expect(row).toBeDefined();
-    if (row) expect(rowCompareTarget(row, 0)).toBe(1);
   });
 });
