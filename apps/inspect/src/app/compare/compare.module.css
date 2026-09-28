@@ -144,6 +144,7 @@
 }
 .selected {
   outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
 }
 .improved {
   background: var(--bs-success-bg-subtle);
@@ -187,10 +188,14 @@
 .mark:hover {
   background: var(--bs-tertiary-bg);
 }
-.mark:focus-visible,
-.markSelected {
+.mark:focus-visible {
   outline: 2px solid var(--bs-primary);
   outline-offset: -1px;
+}
+/* box-shadow, not outline: Bootstrap's button:focus:not(:focus-visible)
+   drops the outline of the mark that was just clicked. */
+.markSelected {
+  box-shadow: inset 0 0 0 2px var(--bs-primary);
 }
 .markPass {
   color: var(--bs-success);
