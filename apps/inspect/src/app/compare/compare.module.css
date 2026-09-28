@@ -13,8 +13,17 @@
 }
 .pickerLabel {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pickerLetter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
   font-size: var(--inspect-font-size-small);
   font-weight: 600;
 }

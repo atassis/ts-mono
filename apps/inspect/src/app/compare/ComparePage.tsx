@@ -78,7 +78,7 @@ export const ComparePage: FC = () => {
       </ApplicationNavbar>
       <div className={styles.pickers}>
         <label className={styles.pickerLabel} htmlFor="compare-picker-a">
-          A
+          <span className={styles.pickerLetter}>A</span>
           <RunPicker
             id="compare-picker-a"
             ariaLabel="Log A"
@@ -89,7 +89,7 @@ export const ComparePage: FC = () => {
           />
         </label>
         <label className={styles.pickerLabel} htmlFor="compare-picker-b">
-          B
+          <span className={styles.pickerLetter}>B</span>
           <RunPicker
             id="compare-picker-b"
             ariaLabel="Log B"
