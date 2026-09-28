@@ -45,6 +45,12 @@ describe("resolveEpochPair", () => {
 });
 
 describe("defaultEpochPair", () => {
+  test("a limit hit counts as the failing epoch", () => {
+    expect(
+      defaultEpochPair([cell(1, "pass"), cell(2, "pass"), cell(3, "limit")])
+    ).toEqual({ epochA: 1, epochB: 3 });
+  });
+
   test("first passing epoch vs first failing epoch", () => {
     const cells = [
       cell(1, "pass"),

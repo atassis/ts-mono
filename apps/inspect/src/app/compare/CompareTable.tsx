@@ -153,8 +153,8 @@ export const CompareTable: FC<CompareTableProps> = ({
                       scored={g.scoredA}
                       selectedKey={selectedKey}
                       onSelect={onMarkSelect}
-                      epochA={epochA}
-                      epochB={epochB}
+                      epochA={selected ? epochA : undefined}
+                      epochB={selected ? epochB : undefined}
                     />
                   </td>
                 ) : (

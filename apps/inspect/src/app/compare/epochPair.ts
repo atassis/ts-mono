@@ -40,7 +40,8 @@ export const resolveEpochPair = (
 export const defaultEpochPair = (cells: EpochCell[]): EpochPair => {
   const sorted = [...cells].sort((x, y) => x.epoch - y.epoch);
   const pass = sorted.find((c) => c.mark === "pass");
-  const fail = sorted.find((c) => c.mark === "fail");
+  // A limit hit is a failed epoch too (see sampleGroups' tally).
+  const fail = sorted.find((c) => c.mark === "fail" || c.mark === "limit");
   if (pass && fail) return { epochA: pass.epoch, epochB: fail.epoch };
   return { epochA: sorted[0]?.epoch ?? 1, epochB: sorted[1]?.epoch ?? 2 };
 };
