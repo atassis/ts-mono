@@ -144,6 +144,7 @@ function renderHarness(opts: HarnessOptions): Harness {
       scrollToEvent: opts.scrollToEvent ?? vi.fn(),
       getFlattenedNodes: () => flattened,
       getVisibleRange: () => ({ startIndex: 0, endIndex: 0 }),
+      getOffsetForIndex: () => undefined,
     });
     useTranscriptSearchSource({
       events: opts.events,

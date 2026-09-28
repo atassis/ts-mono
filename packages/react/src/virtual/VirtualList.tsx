@@ -843,6 +843,10 @@ export function VirtualList<T>({
         const el = getScrollElement();
         if (el) el.scrollTop = el.scrollHeight;
       },
+      getOffsetForIndex(index) {
+        const offset = virtualizer.getOffsetForIndex(index, "start")?.[0];
+        return offset === undefined ? undefined : toSpacerScroll(offset);
+      },
     }),
     [
       virtualizer,
@@ -851,6 +855,7 @@ export function VirtualList<T>({
       smoothScroll,
       getScrollElement,
       toContentScroll,
+      toSpacerScroll,
       data.length,
     ]
   );

@@ -16,6 +16,7 @@ function Harness({ jumpToEnd }: { jumpToEnd: () => void }) {
     getState: () => {},
     jumpToStart: () => {},
     jumpToEnd,
+    getOffsetForIndex: () => undefined,
   });
   const scrollRef = useRef<HTMLDivElement | null>(null);
   useListKeyboardNavigation({ listHandle, scrollRef, itemCount: 3 });

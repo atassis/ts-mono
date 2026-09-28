@@ -112,6 +112,9 @@ export interface TranscriptViewNodesHandle {
   getFlattenedNodes: () => EventNode[];
   /** Read-only accessor for the virtual list's currently-rendered visible range. */
   getVisibleRange: () => { startIndex: number; endIndex: number };
+  /** The scrollTop at which flattened node `index` starts; estimated for
+   *  rows not yet measured. */
+  getOffsetForIndex: (index: number) => number | undefined;
 }
 
 // =============================================================================
@@ -404,6 +407,8 @@ export const TranscriptViewNodes = forwardRef<
       scrollToEvent,
       getFlattenedNodes: () => flattenedNodesLatest.current,
       getVisibleRange: () => visibleRangeRef.current,
+      getOffsetForIndex: (index: number) =>
+        listHandle.current?.getOffsetForIndex(index),
     }),
     [scrollToEvent]
   );

@@ -14,6 +14,7 @@ import {
   makeStateHooks,
 } from "../test/component-state-hooks";
 
+import type { VirtualListHandle } from "./types";
 import { VirtualList } from "./VirtualList";
 
 const Wrapper: React.FC<{
@@ -529,5 +530,33 @@ describe("VirtualList embedded in a shared scroll container", () => {
     ).map((row) => Number(row.dataset.itemIndex));
     expect(Math.min(...indices)).toBeGreaterThan(0);
     unmount();
+  });
+});
+
+describe("VirtualList handle offsets", () => {
+  it("reports each item's start offset, first item at the top", () => {
+    const scrollRef = createRef<HTMLDivElement>();
+    const handle = createRef<VirtualListHandle>();
+    render(
+      <Wrapper hooks={makeStateHooks()}>
+        <div ref={scrollRef}>
+          <VirtualList<string>
+            ref={handle}
+            persistenceKey="offsets"
+            scrollRef={scrollRef}
+            data={["a", "b", "c", "d"]}
+            renderRow={(_index, item) => <div>{item}</div>}
+          />
+        </div>
+      </Wrapper>
+    );
+    const offsets = [0, 1, 2, 3].map((i) =>
+      handle.current?.getOffsetForIndex(i)
+    );
+    expect(offsets[0]).toBe(0);
+    for (const [i, offset] of offsets.entries()) {
+      expect(offset).toBeTypeOf("number");
+      if (i > 0) expect(offset).toBeGreaterThanOrEqual(offsets[i - 1] ?? 0);
+    }
   });
 });

@@ -60,6 +60,7 @@ vi.mock("./TranscriptVirtualList", () => ({
       getState: () => {},
       jumpToStart: () => {},
       jumpToEnd: () => {},
+      getOffsetForIndex: () => undefined,
     };
     capturedEventCallbacks = eventCallbacks;
     return (

@@ -23,6 +23,9 @@ export interface VirtualListHandle {
   getState(callback: (snapshot: VirtualListStateSnapshot) => void): void;
   jumpToStart(): void;
   jumpToEnd(): void;
+  /** The scrollTop at which item `index` starts at the top of the scroller;
+   *  estimated for items not yet measured. */
+  getOffsetForIndex(index: number): number | undefined;
 }
 
 export interface VirtualListItemProps {
