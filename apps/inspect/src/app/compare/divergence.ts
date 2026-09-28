@@ -74,7 +74,7 @@ const classifyBashCommand = (command: string): ToolActionClass => {
   return "run";
 };
 
-const classifyToolCall = (
+export const classifyToolCall = (
   functionName: string,
   args: Record<string, unknown>
 ): ToolActionClass => {
