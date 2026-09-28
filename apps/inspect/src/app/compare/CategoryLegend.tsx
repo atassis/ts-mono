@@ -5,54 +5,59 @@ import { PopOver } from "@tsmono/react/components";
 
 import { ApplicationIcons } from "../appearance/icons";
 
-import { CompareCategory } from "./alignRuns";
 import styles from "./CategoryLegend.module.css";
 import compareStyles from "./compare.module.css";
 
 const kLegend: Array<{
-  category: CompareCategory;
+  label: string;
   swatch: string | undefined;
   meaning: string;
 }> = [
   {
-    category: "both-pass",
+    label: "both-pass",
     swatch: undefined,
-    meaning: "passed in both A and B",
+    meaning: "every scored epoch passed, in A and in B",
   },
   {
-    category: "both-fail",
+    label: "both-fail",
     swatch: undefined,
-    meaning: "failed in both A and B",
+    meaning: "every scored epoch failed, in A and in B",
   },
   {
-    category: "improved",
+    label: "improved",
     swatch: compareStyles.improved,
-    meaning: "passed in A, failed in B (or score went up)",
+    meaning: "B passes a larger share of epochs than A",
   },
   {
-    category: "regressed",
+    label: "regressed",
     swatch: compareStyles.regressed,
-    meaning: "passed in A, failed in B (or score went down)",
+    meaning: "B passes a smaller share of epochs than A",
   },
   {
-    category: "unchanged",
+    label: "unchanged",
     swatch: undefined,
-    meaning: "present in both, score unchanged",
+    meaning: "same pass share in A and B, but not all-pass or all-fail",
   },
   {
-    category: "only-a",
+    label: "flaky",
+    swatch: undefined,
+    meaning:
+      "passes in some epochs and fails in others within one run; a gap between A and B may be noise",
+  },
+  {
+    label: "only-a",
     swatch: undefined,
     meaning: "sample present only in A",
   },
   {
-    category: "only-b",
+    label: "only-b",
     swatch: undefined,
     meaning: "sample present only in B",
   },
   {
-    category: "error",
+    label: "error",
     swatch: compareStyles.error,
-    meaning: "sample errored in A and/or B",
+    meaning: "no scored epoch on one side (all errored)",
   },
 ];
 
@@ -82,10 +87,10 @@ export const CategoryLegend: FC = () => {
         hoverDelay={0}
       >
         <ul className={styles.list}>
-          {kLegend.map(({ category, swatch, meaning }) => (
-            <li key={category} className={styles.item}>
+          {kLegend.map(({ label, swatch, meaning }) => (
+            <li key={label} className={styles.item}>
               <span className={clsx(styles.swatch, swatch)} />
-              <span className={styles.category}>{category}</span>
+              <span className={styles.category}>{label}</span>
               <span className={styles.meaning}>{meaning}</span>
             </li>
           ))}
