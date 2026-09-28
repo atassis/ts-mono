@@ -11,7 +11,12 @@ import { ViewSegmentedControl } from "../navbar/ViewSegmentedControl";
 import { logsUrl } from "../routing/url";
 import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 
-import { alignRuns, firstCommonScorer, inferScoreType } from "./alignRuns";
+import {
+  alignRuns,
+  inferScoreType,
+  resolveScorer,
+  scorerOptions,
+} from "./alignRuns";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
 import { RunPicker } from "./RunPicker";
@@ -21,6 +26,7 @@ import {
   tasksDiffer,
   taskVersionDiffers,
 } from "./runPicker";
+import { ScorerSelect } from "./ScorerSelect";
 import { SideTranscript } from "./SideTranscript";
 
 const runIdentity = (log: Log | undefined): string =>
@@ -41,16 +47,20 @@ export const ComparePage: FC = () => {
   const summariesA = useSampleSummaries(logDir, a);
   const summariesB = useSampleSummaries(logDir, b);
 
-  const update = (key: "a" | "b" | "sample", value: string): void => {
+  const update = (
+    key: "a" | "b" | "sample" | "scorer",
+    value: string
+  ): void => {
     const next = new URLSearchParams(params);
     next.set(key, value);
-    if (key !== "sample") next.delete("sample");
+    if (key === "a" || key === "b") next.delete("sample");
     setParams(next);
   };
 
   const rowsA = summariesA.data ?? [];
   const rowsB = summariesB.data ?? [];
-  const scorer = firstCommonScorer(rowsA, rowsB);
+  const scorers = scorerOptions(rowsA, rowsB);
+  const scorer = resolveScorer(scorers, params.get("scorer") ?? undefined);
   const rows = a && b ? alignRuns(rowsA, rowsB, scorer) : [];
   const selected = rows.find((r) => r.key === selectedKey);
 
@@ -111,8 +121,12 @@ export const ComparePage: FC = () => {
             }
           />
         </label>
-        {scorer ? (
-          <span className={styles.scorer}>scorer: {scorer}</span>
+        {a && b && !loading ? (
+          <ScorerSelect
+            options={scorers}
+            selected={scorer}
+            onSelect={(name) => update("scorer", name)}
+          />
         ) : null}
         {mismatchedTasks ? (
           <span role="alert" className={styles.warning}>

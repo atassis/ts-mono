@@ -55,6 +55,9 @@
   padding: 0.5rem 0.75rem;
 }
 .scorer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: var(--inspect-font-size-small);
   color: var(--bs-secondary-color);
 }

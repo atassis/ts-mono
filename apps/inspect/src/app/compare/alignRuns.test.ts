@@ -5,10 +5,11 @@ import { kScoreTypeBoolean, kScoreTypePassFail } from "../../constants";
 
 import {
   alignRuns,
-  firstCommonScorer,
   inferScoreType,
   outcomeOf,
+  resolveScorer,
   sampleKey,
+  scorerOptions,
 } from "./alignRuns";
 
 const s = (
@@ -73,22 +74,51 @@ describe("inferScoreType", () => {
   });
 });
 
-describe("firstCommonScorer", () => {
-  test("picks first scorer present in both runs", () => {
-    const a = [
-      {
-        ...s(1, 1),
-        scores: {
-          f1: { value: 1, history: [] },
-          match: { value: "C", history: [] },
-        },
-      },
-    ];
-    const b = [s(1, 1, "I")];
-    expect(firstCommonScorer(a, b)).toBe("match");
+const scored = (names: string[]): SampleSummary => ({
+  ...s(1, 1),
+  scores: Object.fromEntries(
+    names.map((name) => [name, { value: "C", history: [] }])
+  ),
+});
+
+describe("scorerOptions", () => {
+  test("lists the union, A's order first, flagging which side has each", () => {
+    const a = [scored(["f1", "match"])];
+    const b = [scored(["match", "judge"])];
+    expect(scorerOptions(a, b)).toEqual([
+      { name: "f1", inA: true, inB: false },
+      { name: "match", inA: true, inB: true },
+      { name: "judge", inA: false, inB: true },
+    ]);
   });
-  test("undefined when nothing in common", () => {
-    expect(firstCommonScorer([s(1, 1)], [s(1, 1)])).toBeUndefined();
+  test("collects names across all samples, not just the first", () => {
+    const a = [s(1, 1), scored(["match"])];
+    const b = [scored(["match"])];
+    expect(scorerOptions(a, b)).toEqual([
+      { name: "match", inA: true, inB: true },
+    ]);
+  });
+});
+
+describe("resolveScorer", () => {
+  const options = [
+    { name: "f1", inA: true, inB: false },
+    { name: "match", inA: true, inB: true },
+    { name: "judge", inA: true, inB: true },
+  ];
+  test("keeps a requested scorer both runs have", () => {
+    expect(resolveScorer(options, "judge")).toBe("judge");
+  });
+  test("falls back to the first common scorer for a one-sided request", () => {
+    expect(resolveScorer(options, "f1")).toBe("match");
+  });
+  test("falls back when nothing is requested", () => {
+    expect(resolveScorer(options, undefined)).toBe("match");
+  });
+  test("undefined when nothing is in common", () => {
+    expect(
+      resolveScorer([{ name: "f1", inA: true, inB: false }], "f1")
+    ).toBeUndefined();
   });
 });
 

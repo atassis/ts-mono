@@ -51,20 +51,41 @@ export const outcomeOf = (value: ScoreValue | undefined): Outcome => {
   return "other";
 };
 
-export const firstCommonScorer = (
+export interface ScorerOption {
+  name: string;
+  inA: boolean;
+  inB: boolean;
+}
+
+const scorerNames = (samples: SampleSummary[]): Set<string> => {
+  const names = new Set<string>();
+  for (const sample of samples) {
+    for (const name of Object.keys(sample.scores ?? {})) names.add(name);
+  }
+  return names;
+};
+
+/** Every scorer either run has, so one-sided scorers can be shown (but not
+ *  picked) instead of silently dropped. */
+export const scorerOptions = (
   a: SampleSummary[],
   b: SampleSummary[]
+): ScorerOption[] => {
+  const inA = scorerNames(a);
+  const inB = scorerNames(b);
+  return [...new Set([...inA, ...inB])].map((name) => ({
+    name,
+    inA: inA.has(name),
+    inB: inB.has(name),
+  }));
+};
+
+export const resolveScorer = (
+  options: ScorerOption[],
+  requested: string | undefined
 ): string | undefined => {
-  const inB = new Set<string>();
-  for (const sample of b) {
-    for (const name of Object.keys(sample.scores ?? {})) inB.add(name);
-  }
-  for (const sample of a) {
-    for (const name of Object.keys(sample.scores ?? {})) {
-      if (inB.has(name)) return name;
-    }
-  }
-  return undefined;
+  const common = options.filter((o) => o.inA && o.inB);
+  return (common.find((o) => o.name === requested) ?? common[0])?.name;
 };
 
 const valueOf = (

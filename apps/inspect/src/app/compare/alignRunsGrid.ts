@@ -34,7 +34,7 @@ export interface GridRow {
   outlierRunIndex?: number;
 }
 
-/** Generalizes `firstCommonScorer` to N runs: the first scorer name present
+/** The first scorer name present
  *  in every run's samples (order taken from the first run). */
 export const firstCommonScorerN = (
   runs: SampleSummary[][]
