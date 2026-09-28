@@ -5,12 +5,7 @@ import { outcomeOf, sampleKey } from "./alignRuns";
 import { failureKind } from "./failureKind";
 
 export type GridOutcome =
-  | "pass"
-  | "fail"
-  | "other"
-  | "error"
-  | "limit"
-  | "missing";
+  "pass" | "fail" | "other" | "error" | "limit" | "missing";
 
 export interface GridCell {
   runIndex: number;

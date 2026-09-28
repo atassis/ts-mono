@@ -45,7 +45,10 @@ describe("medianTokens", () => {
   });
 
   test("even count averages the two middle values", () => {
-    const samples = [s({ model_usage: usage(100) }), s({ model_usage: usage(300) })];
+    const samples = [
+      s({ model_usage: usage(100) }),
+      s({ model_usage: usage(300) }),
+    ];
     expect(medianTokens(samples)).toBe(200);
   });
 
@@ -158,10 +161,16 @@ describe("buildRunProfile", () => {
     // median time ~106.63s, breakdown pass 21 / fail 8 / limit 3 / error 0.
     const samples: SampleSummary[] = [
       ...Array.from({ length: 21 }, () =>
-        s({ scores: { match: { value: "C", history: [] } }, model_usage: usage(8000) })
+        s({
+          scores: { match: { value: "C", history: [] } },
+          model_usage: usage(8000),
+        })
       ),
       ...Array.from({ length: 8 }, () =>
-        s({ scores: { match: { value: "I", history: [] } }, model_usage: usage(9000) })
+        s({
+          scores: { match: { value: "I", history: [] } },
+          model_usage: usage(9000),
+        })
       ),
       ...Array.from({ length: 3 }, () => s({ limit: "message" })),
     ];

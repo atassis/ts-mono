@@ -103,7 +103,9 @@ export const paretoFrontier = (
 
 /** Cost axis domain: 0 to just past the highest point, so the rightmost
  *  point never sits flush on the plot edge. */
-export const costDomain = (points: readonly FrontierPoint[]): [number, number] => {
+export const costDomain = (
+  points: readonly FrontierPoint[]
+): [number, number] => {
   const max = points.reduce((m, p) => Math.max(m, p.cost), 0);
   return [0, max === 0 ? 1 : max * 1.12];
 };
@@ -135,7 +137,8 @@ export const linearScale = (
   rangeMax: number
 ): Scale => {
   const span = domainMax - domainMin || 1;
-  return (value) => rangeMin + ((value - domainMin) / span) * (rangeMax - rangeMin);
+  return (value) =>
+    rangeMin + ((value - domainMin) / span) * (rangeMax - rangeMin);
 };
 
 /** "Nice" round tick values within [min, max] (D3's nice-ticks heuristic:

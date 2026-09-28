@@ -125,7 +125,6 @@ export const RunsGridPage: FC = () => {
           {addRunPicker}
         </div>
       ) : null}
-      <FrontierChart runs={runLogs} summaries={sampleLists} scorer={scorer} />
       {error ? (
         <ErrorPanel
           title="Error"
@@ -143,6 +142,11 @@ export const RunsGridPage: FC = () => {
         </div>
       ) : (
         <div className={styles.gridWrap}>
+          <FrontierChart
+            runs={runLogs}
+            summaries={sampleLists}
+            scorer={scorer}
+          />
           <RunsGrid
             runs={runLogs}
             rows={rows}

@@ -29,7 +29,8 @@ const kWidth = 640;
 const kHeight = 220;
 const kMargin = { top: 14, right: 20, bottom: 26, left: 46 };
 
-const ciHalfWidth = (point: FrontierPoint): number => 1.96 * (point.stderr ?? 0);
+const ciHalfWidth = (point: FrontierPoint): number =>
+  1.96 * (point.stderr ?? 0);
 
 /**
  * Quality-vs-cost scatter for the runs picked in the grid: one point per
@@ -81,14 +82,21 @@ export const FrontierChart: FC<FrontierChartProps> = ({
     <div className={styles.wrap}>
       <div className={styles.header}>
         <span className={styles.title}>Quality vs cost</span>
-        <div className={styles.toggle} role="radiogroup" aria-label="Cost metric">
+        <div
+          className={styles.toggle}
+          role="radiogroup"
+          aria-label="Cost metric"
+        >
           {(["tokens", "time"] as const).map((m) => (
             <button
               key={m}
               type="button"
               role="radio"
               aria-checked={metric === m}
-              className={clsx(styles.toggleBtn, metric === m && styles.toggleActive)}
+              className={clsx(
+                styles.toggleBtn,
+                metric === m && styles.toggleActive
+              )}
               onClick={() => setMetric(m)}
             >
               {m === "tokens" ? "tokens" : "time"}
@@ -146,7 +154,10 @@ export const FrontierChart: FC<FrontierChartProps> = ({
           return (
             <g
               key={p.runIndex}
-              className={clsx(styles.point, frontier ? styles.onFrontier : styles.dominated)}
+              className={clsx(
+                styles.point,
+                frontier ? styles.onFrontier : styles.dominated
+              )}
               tabIndex={0}
               aria-label={`${p.label}: ${formatPercent(p.accuracy, 1)}${
                 half > 0 ? ` ± ${formatPercent(half, 1)}` : ""
@@ -157,10 +168,21 @@ export const FrontierChart: FC<FrontierChartProps> = ({
               onBlur={() => setActiveRun(undefined)}
             >
               {half > 0 ? (
-                <line className={styles.errorBar} x1={cx} x2={cx} y1={yLo} y2={yHi} />
+                <line
+                  className={styles.errorBar}
+                  x1={cx}
+                  x2={cx}
+                  y1={yLo}
+                  y2={yHi}
+                />
               ) : null}
               <circle className={styles.dot} cx={cx} cy={cy} r={5} />
-              <text className={styles.pointLabel} x={cx} y={cy - 10} textAnchor="middle">
+              <text
+                className={styles.pointLabel}
+                x={cx}
+                y={cy - 10}
+                textAnchor="middle"
+              >
                 {p.label}
               </text>
             </g>
@@ -172,7 +194,9 @@ export const FrontierChart: FC<FrontierChartProps> = ({
           <strong>{active.label}</strong>
           {": "}
           {formatPercent(active.accuracy, 1)}
-          {ciHalfWidth(active) > 0 ? ` ± ${formatPercent(ciHalfWidth(active), 1)}` : ""}
+          {ciHalfWidth(active) > 0
+            ? ` ± ${formatPercent(ciHalfWidth(active), 1)}`
+            : ""}
           {" · "}
           {formatCost(active.cost, metric)}
           {onFrontier.has(active.runIndex) ? " · on frontier" : " · dominated"}

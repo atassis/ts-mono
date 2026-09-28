@@ -17,8 +17,8 @@ import {
   sortGridSamplesByDifficulty,
 } from "./gridGroups";
 import { heatAlpha } from "./heatmap";
-import styles from "./RunsGrid.module.css";
 import { buildRunProfile, RunProfile } from "./runProfile";
+import styles from "./RunsGrid.module.css";
 import { shortRunLabel } from "./shortRunLabel";
 
 const accuracyText = (profile: RunProfile): string | undefined => {
@@ -141,11 +141,22 @@ export const RunsGrid: FC<RunsGridProps> = ({
   return (
     <div>
       <div className={styles.toolbar}>
-        <div className={styles.legend} title="Same colors and glyphs as the epoch marks">
-          <span className={clsx(styles.legendItem, styles.legendPass)}>● pass</span>
-          <span className={clsx(styles.legendItem, styles.legendFail)}>✕ wrong answer</span>
-          <span className={clsx(styles.legendItem, styles.legendLimit)}>▲ hit a limit</span>
-          <span className={clsx(styles.legendItem, styles.legendError)}>! infra error</span>
+        <div
+          className={styles.legend}
+          title="Same colors and glyphs as the epoch marks"
+        >
+          <span className={clsx(styles.legendItem, styles.legendPass)}>
+            ● pass
+          </span>
+          <span className={clsx(styles.legendItem, styles.legendFail)}>
+            ✕ wrong answer
+          </span>
+          <span className={clsx(styles.legendItem, styles.legendLimit)}>
+            ▲ hit a limit
+          </span>
+          <span className={clsx(styles.legendItem, styles.legendError)}>
+            ! infra error
+          </span>
         </div>
         <label className={styles.toggle}>
           <input
@@ -155,7 +166,11 @@ export const RunsGrid: FC<RunsGridProps> = ({
           />
           Heatmap (pass share)
         </label>
-        <div className={styles.orderToggle} role="group" aria-label="Row and column order">
+        <div
+          className={styles.orderToggle}
+          role="group"
+          aria-label="Row and column order"
+        >
           <button
             type="button"
             className={clsx(
@@ -238,7 +253,10 @@ export const RunsGrid: FC<RunsGridProps> = ({
         </thead>
         <tbody>
           {visible.map((row) => (
-            <tr key={String(row.id)} className={kVerdictClass[row.verdict.kind]}>
+            <tr
+              key={String(row.id)}
+              className={kVerdictClass[row.verdict.kind]}
+            >
               <td>
                 <button
                   type="button"
@@ -274,7 +292,9 @@ export const RunsGrid: FC<RunsGridProps> = ({
                   </td>
                 );
               })}
-              <td className={styles.verdict}>{verdictText(row.verdict, name)}</td>
+              <td className={styles.verdict}>
+                {verdictText(row.verdict, name)}
+              </td>
             </tr>
           ))}
           {agreeing.length > 0 ? (

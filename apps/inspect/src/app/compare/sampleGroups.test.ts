@@ -62,6 +62,17 @@ describe("groupBySample", () => {
     expect(g.category).toBe("both-pass");
   });
 
+  test("a limit hit is a scored failure, not a gap in the tally", () => {
+    const g = group(run(1, "CC"), [
+      s(1, 1, "C"),
+      s(1, 2, "I", { limit: "message" }),
+    ]);
+    expect(g.b.map((c) => c.mark)).toEqual(["pass", "limit"]);
+    expect([g.passB, g.scoredB]).toEqual([1, 2]);
+    expect(g.flaky).toBe(true);
+    expect(g.category).toBe("regressed");
+  });
+
   test("error when a side has nothing scored", () => {
     const g = group(run(1, "C"), [s(1, 1, "C", { error: "x" })]);
     expect(g.category).toBe("error");

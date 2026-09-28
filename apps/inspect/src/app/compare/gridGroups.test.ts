@@ -76,6 +76,24 @@ describe("groupGridBySample", () => {
   });
 });
 
+describe("groupGridBySample limits", () => {
+  test("limit hits count as scored failures in the tally", () => {
+    const limited: SampleSummary = { ...s(9, 2, "I"), limit: "message" };
+    const [row] = groupGridBySample(
+      alignRunsGrid(
+        [
+          [s(9, 1, "C"), limited],
+          [s(9, 1, "C"), s(9, 2, "C")],
+        ],
+        "match"
+      )
+    );
+    expect(row?.cells[0]?.marks.map((m) => m.mark)).toEqual(["pass", "limit"]);
+    expect([row?.cells[0]?.pass, row?.cells[0]?.scored]).toEqual([1, 2]);
+    expect(row?.cells[0]?.state).toBe("mixed");
+  });
+});
+
 describe("sortGridSamples", () => {
   test("outliers and splits first, then flaky, all-fail, all-pass", () => {
     const rows = [

@@ -4,12 +4,7 @@ import { AlignedSample, outcomeOf, sampleKey } from "./alignRuns";
 import { failureKind } from "./failureKind";
 
 export type EpochMark =
-  | "pass"
-  | "fail"
-  | "other"
-  | "error"
-  | "limit"
-  | "missing";
+  "pass" | "fail" | "other" | "error" | "limit" | "missing";
 
 export type GroupCategory =
   | "improved"
@@ -57,9 +52,13 @@ const markOf = (
   return outcome === "other" ? "other" : outcome;
 };
 
+// A limit hit is a scored failure (the scorer marks it incorrect), so it
+// counts toward the tally; errors and missing epochs do not.
 const tally = (cells: EpochCell[]): { pass: number; scored: number } => ({
   pass: cells.filter((c) => c.mark === "pass").length,
-  scored: cells.filter((c) => c.mark === "pass" || c.mark === "fail").length,
+  scored: cells.filter(
+    (c) => c.mark === "pass" || c.mark === "fail" || c.mark === "limit"
+  ).length,
 });
 
 const categorize = (

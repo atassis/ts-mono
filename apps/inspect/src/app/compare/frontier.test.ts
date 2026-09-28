@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { EvalMetric, EvalScore, ModelUsage } from "@tsmono/inspect-common/types";
+import {
+  EvalMetric,
+  EvalScore,
+  ModelUsage,
+} from "@tsmono/inspect-common/types";
 
 import { Log, SampleSummary } from "../../client/api/types";
 
@@ -22,9 +26,7 @@ const usage = (total_tokens: number): ModelUsage => ({
   total_tokens,
 });
 
-const summary = (
-  overrides: Partial<SampleSummary> = {}
-): SampleSummary => ({
+const summary = (overrides: Partial<SampleSummary> = {}): SampleSummary => ({
   id: 1,
   epoch: 1,
   input: "",
@@ -42,11 +44,7 @@ const metric = (value: number): EvalMetric => ({
   params: {},
 });
 
-const score = (
-  name: string,
-  accuracy: number,
-  stderr?: number
-): EvalScore => ({
+const score = (name: string, accuracy: number, stderr?: number): EvalScore => ({
   name,
   scorer: name,
   params: {},
@@ -67,10 +65,7 @@ const log = (overrides: Partial<Log> & Pick<Log, "name">): Log => ({
   ...overrides,
 });
 
-const logWithResults = (
-  name: string,
-  scores: EvalScore[]
-): Log =>
+const logWithResults = (name: string, scores: EvalScore[]): Log =>
   log({
     name,
     header: {
@@ -158,7 +153,13 @@ describe("buildFrontierPoints", () => {
       (i) => `run${i}`
     );
     expect(points).toEqual([
-      { runIndex: 0, label: "run0", cost: 100, accuracy: 0.9, stderr: undefined },
+      {
+        runIndex: 0,
+        label: "run0",
+        cost: 100,
+        accuracy: 0.9,
+        stderr: undefined,
+      },
     ]);
   });
 });
@@ -167,13 +168,55 @@ describe("paretoFrontier", () => {
   test("computes the real bench frontier: gemma-4-31b alone dominates", () => {
     // Medians measured from logs/bench/*/*.eval (see task report).
     const points = [
-      { runIndex: 0, label: "gemma-26b", cost: 12527, accuracy: 0.90625, stderr: undefined },
-      { runIndex: 1, label: "gemma-26b-kvq4-s3", cost: 17371.5, accuracy: 0.90625, stderr: undefined },
-      { runIndex: 2, label: "gemma-4-31b", cost: 4978.5, accuracy: 0.9375, stderr: undefined },
-      { runIndex: 3, label: "qwen3.5-122b-nothink", cost: 5635, accuracy: 0.9375, stderr: undefined },
-      { runIndex: 4, label: "qwen3.6-27b-q3", cost: 5270, accuracy: 0.9375, stderr: undefined },
-      { runIndex: 5, label: "qwen3.8-27b", cost: 7695.5, accuracy: 0.9375, stderr: undefined },
-      { runIndex: 6, label: "mistral-small-4", cost: 8011.5, accuracy: 0.65625, stderr: undefined },
+      {
+        runIndex: 0,
+        label: "gemma-26b",
+        cost: 12527,
+        accuracy: 0.90625,
+        stderr: undefined,
+      },
+      {
+        runIndex: 1,
+        label: "gemma-26b-kvq4-s3",
+        cost: 17371.5,
+        accuracy: 0.90625,
+        stderr: undefined,
+      },
+      {
+        runIndex: 2,
+        label: "gemma-4-31b",
+        cost: 4978.5,
+        accuracy: 0.9375,
+        stderr: undefined,
+      },
+      {
+        runIndex: 3,
+        label: "qwen3.5-122b-nothink",
+        cost: 5635,
+        accuracy: 0.9375,
+        stderr: undefined,
+      },
+      {
+        runIndex: 4,
+        label: "qwen3.6-27b-q3",
+        cost: 5270,
+        accuracy: 0.9375,
+        stderr: undefined,
+      },
+      {
+        runIndex: 5,
+        label: "qwen3.8-27b",
+        cost: 7695.5,
+        accuracy: 0.9375,
+        stderr: undefined,
+      },
+      {
+        runIndex: 6,
+        label: "mistral-small-4",
+        cost: 8011.5,
+        accuracy: 0.65625,
+        stderr: undefined,
+      },
     ];
     const { indices, line } = paretoFrontier(points);
     expect(indices).toEqual(new Set([2]));
@@ -181,14 +224,38 @@ describe("paretoFrontier", () => {
   });
 
   test("tied runs (same cost and accuracy) both stay on the frontier", () => {
-    const a = { runIndex: 0, label: "a", cost: 10, accuracy: 0.5, stderr: undefined };
-    const b = { runIndex: 1, label: "b", cost: 10, accuracy: 0.5, stderr: undefined };
+    const a = {
+      runIndex: 0,
+      label: "a",
+      cost: 10,
+      accuracy: 0.5,
+      stderr: undefined,
+    };
+    const b = {
+      runIndex: 1,
+      label: "b",
+      cost: 10,
+      accuracy: 0.5,
+      stderr: undefined,
+    };
     expect(paretoFrontier([a, b]).indices).toEqual(new Set([0, 1]));
   });
 
   test("cheaper-and-better dominates; dearer-and-worse is excluded", () => {
-    const cheap = { runIndex: 0, label: "cheap", cost: 5, accuracy: 0.9, stderr: undefined };
-    const costly = { runIndex: 1, label: "costly", cost: 20, accuracy: 0.6, stderr: undefined };
+    const cheap = {
+      runIndex: 0,
+      label: "cheap",
+      cost: 5,
+      accuracy: 0.9,
+      stderr: undefined,
+    };
+    const costly = {
+      runIndex: 1,
+      label: "costly",
+      cost: 20,
+      accuracy: 0.6,
+      stderr: undefined,
+    };
     expect(paretoFrontier([cheap, costly]).indices).toEqual(new Set([0]));
   });
 });

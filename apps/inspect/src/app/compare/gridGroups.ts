@@ -81,7 +81,8 @@ export const groupGridBySample = (rows: GridRow[]): GridSampleRow[] => {
       }));
       const count = (m: EpochMark) => marks.filter((c) => c.mark === m).length;
       const pass = count("pass");
-      const scored = pass + count("fail");
+      // Limit hits are scored failures; see sampleGroups' tally.
+      const scored = pass + count("fail") + count("limit");
       return { runIndex, marks, pass, scored, state: stateOf(pass, scored) };
     });
     return [
@@ -132,7 +133,8 @@ export const sortGridSamplesByDifficulty = (
   rows
     .map((row, index) => ({ row, index, share: passShareOfRow(row) }))
     .sort((x, y) => {
-      if (x.share === undefined && y.share === undefined) return x.index - y.index;
+      if (x.share === undefined && y.share === undefined)
+        return x.index - y.index;
       if (x.share === undefined) return 1;
       if (y.share === undefined) return -1;
       return x.share - y.share || x.index - y.index;
