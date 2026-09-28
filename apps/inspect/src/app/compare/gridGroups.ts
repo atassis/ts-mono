@@ -116,6 +116,29 @@ export const sortGridSamples = (rows: GridSampleRow[]): GridSampleRow[] =>
     )
     .map(({ row }) => row);
 
+/** Pass share across every run's scored epochs for this sample —
+ *  undefined when no run scored it (all missing/error/limit). */
+export const passShareOfRow = (row: GridSampleRow): number | undefined => {
+  const pass = row.cells.reduce((sum, c) => sum + c.pass, 0);
+  const scored = row.cells.reduce((sum, c) => sum + c.scored, 0);
+  return scored > 0 ? pass / scored : undefined;
+};
+
+/** Hardest first (lowest pass share), rows with no scored data last; ties
+ *  keep the input order. */
+export const sortGridSamplesByDifficulty = (
+  rows: GridSampleRow[]
+): GridSampleRow[] =>
+  rows
+    .map((row, index) => ({ row, index, share: passShareOfRow(row) }))
+    .sort((x, y) => {
+      if (x.share === undefined && y.share === undefined) return x.index - y.index;
+      if (x.share === undefined) return 1;
+      if (y.share === undefined) return -1;
+      return x.share - y.share || x.index - y.index;
+    })
+    .map(({ row }) => row);
+
 /** The run a row click pairs with the baseline: the lone outlier, else the
  *  first run whose state differs from the baseline's, else the next run. */
 export const compareTarget = (

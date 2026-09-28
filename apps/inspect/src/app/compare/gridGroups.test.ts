@@ -7,7 +7,9 @@ import {
   compareTarget,
   focusKey,
   groupGridBySample,
+  passShareOfRow,
   sortGridSamples,
+  sortGridSamplesByDifficulty,
 } from "./gridGroups";
 
 const s = (id: number, epoch: number, value: string): SampleSummary => ({
@@ -83,6 +85,37 @@ describe("sortGridSamples", () => {
       ...grid(4, "CC", "CC", "II"),
     ];
     expect(sortGridSamples(rows).map((r) => r.id)).toEqual([4, 3, 2, 1]);
+  });
+});
+
+describe("passShareOfRow", () => {
+  test("pass share across every run's scored epochs", () => {
+    const [row] = grid(1, "CC", "CI", "II");
+    if (!row) throw new Error("no row");
+    // 2 pass / 2 scored + 1/2 + 0/2 = 3 pass of 6 scored.
+    expect(passShareOfRow(row)).toBeCloseTo(0.5);
+  });
+
+  test("no scored data anywhere: undefined", () => {
+    const errored: SampleSummary = { ...s(1, 1, "C"), error: "boom" };
+    const [row] = groupGridBySample(
+      alignRunsGrid([[errored], [errored]], "match")
+    );
+    if (!row) throw new Error("no row");
+    expect(passShareOfRow(row)).toBeUndefined();
+  });
+});
+
+describe("sortGridSamplesByDifficulty", () => {
+  test("hardest (lowest pass share) first; ties keep input order", () => {
+    const rows = [
+      ...grid(1, "CC", "CC", "CC"), // 6/6
+      ...grid(2, "II", "II", "II"), // 0/6
+      ...grid(3, "CC", "CI", "II"), // 3/6
+    ];
+    expect(sortGridSamplesByDifficulty(rows).map((r) => r.id)).toEqual([
+      2, 3, 1,
+    ]);
   });
 });
 
