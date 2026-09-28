@@ -71,7 +71,10 @@ export const RunsGridPage: FC = () => {
       setBaselineIndex(baselineIndex - 1);
   };
 
-  const loading = sync.busy || logs.loading || summaries.some((s) => s.loading);
+  const refreshing =
+    sync.busy || logs.loading || summaries.some((s) => s.loading);
+  // Only a first load replaces the grid; refetches keep it on screen.
+  const loading = refreshing && (!logs.data || summaries.some((s) => !s.data));
   const error = logs.error ?? summaries.find((s) => s.error)?.error;
 
   const sampleLists = summaries.map((s) => s.data ?? []);
@@ -105,7 +108,7 @@ export const RunsGridPage: FC = () => {
       <ApplicationNavbar
         currentPath={undefined}
         fnNavigationUrl={logsUrl}
-        loading={sync.busy || loading}
+        loading={refreshing}
       >
         <ViewSegmentedControl selectedSegment="compare" />
       </ApplicationNavbar>

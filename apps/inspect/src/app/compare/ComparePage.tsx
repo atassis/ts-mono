@@ -258,17 +258,22 @@ export const ComparePage: FC = () => {
   const mismatchedVersions = taskVersionDiffers(logA, logB);
 
   const error = logs.error ?? summariesA.error ?? summariesB.error;
-  // Both logs are picked but their samples haven't settled yet — without
+  // Both logs are picked but their samples haven't arrived yet — without
   // this, the table briefly shows 0 rows, indistinguishable from "no data".
+  // Refetches of data already shown keep the page (and the transcripts'
+  // scroll) in place; the navbar bar signals them.
+  const refreshing = logs.loading || summariesA.loading || summariesB.loading;
   const loading =
-    !!(a && b) && (logs.loading || summariesA.loading || summariesB.loading);
+    !!(a && b) &&
+    (!logs.data || !summariesA.data || !summariesB.data) &&
+    refreshing;
 
   return (
     <div className={styles.page}>
       <ApplicationNavbar
         currentPath={undefined}
         fnNavigationUrl={logsUrl}
-        loading={sync.busy || loading}
+        loading={sync.busy || refreshing}
       >
         <ViewSegmentedControl selectedSegment="compare" />
       </ApplicationNavbar>
