@@ -1,6 +1,9 @@
-import { FC, RefObject, useRef } from "react";
+import { FC, RefObject, useRef, useState } from "react";
 
-import { TranscriptLayout } from "@tsmono/inspect-components/transcript";
+import {
+  TranscriptLayout,
+  type TranscriptCollapseState,
+} from "@tsmono/inspect-components/transcript";
 import {
   ErrorPanel,
   ExtendedFindProvider,
@@ -35,6 +38,32 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
   const scrollRef = paneRef ?? ownRef;
   const data = useEvalSampleData(logDir, { id, epoch, logFile });
 
+  // TranscriptLayout's collapse chevrons are no-ops without a collapseState
+  // (onCollapseTranscript falls through to nothing — see
+  // useTranscriptCollapse). The app-wide store is keyed by the currently
+  // selected sample, which this page never sets, so each pane gets its own
+  // local state instead. Reset (via key, the sanctioned setState-during-
+  // render pattern) when the sample changes, since SideTranscript isn't
+  // remounted across sample switches.
+  const sampleKey = `${logFile}:${id}:${epoch}`;
+  const [collapsed, setCollapsed] = useState<{
+    key: string;
+    ids: Record<string, boolean>;
+  }>(() => ({ key: sampleKey, ids: {} }));
+  if (collapsed.key !== sampleKey) {
+    setCollapsed({ key: sampleKey, ids: {} });
+  }
+  const collapseState: TranscriptCollapseState = {
+    transcript: collapsed.ids,
+    onCollapseTranscript: (nodeId, isCollapsed) =>
+      setCollapsed((prev) => ({
+        key: prev.key,
+        ids: { ...prev.ids, [nodeId]: isCollapsed },
+      })),
+    onSetTranscriptCollapsed: (ids) =>
+      setCollapsed((prev) => ({ key: prev.key, ids })),
+  };
+
   if (data.error) {
     return (
       <div className={styles.pane}>
@@ -63,6 +92,7 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
           embedded
           timeline={{ showSwimlanes: false }}
           keyboardNavDisabled={true}
+          collapseState={collapseState}
         />
       </div>
     </ExtendedFindProvider>
