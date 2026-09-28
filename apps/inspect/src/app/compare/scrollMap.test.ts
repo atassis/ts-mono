@@ -192,13 +192,7 @@ describe("advance", () => {
 
   test("clamps at END", () => {
     const maxK = offsetsA.length - 2;
-    const next = advance(
-      { k: maxK, t: 1 },
-      "a",
-      500,
-      offsetsA,
-      offsetsB
-    );
+    const next = advance({ k: maxK, t: 1 }, "a", 500, offsetsA, offsetsB);
     expect(next).toEqual({ k: maxK, t: 1 });
   });
 

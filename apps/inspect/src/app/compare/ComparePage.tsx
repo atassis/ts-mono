@@ -1,12 +1,18 @@
 import { FC, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
+import { type TranscriptViewNodesHandle } from "@tsmono/inspect-components/transcript";
 import { ErrorPanel, LoadingBar } from "@tsmono/react/components";
 import { navigateAndForget, useEventListener } from "@tsmono/react/hooks";
 
 import { useLogDir } from "../../app_config";
 import { Log } from "../../client/api/types";
-import { useLogListing, useLogsSync, useSampleSummaries } from "../../log_data";
+import {
+  useEvalSampleData,
+  useLogListing,
+  useLogsSync,
+  useSampleSummaries,
+} from "../../log_data";
 import { ApplicationNavbar } from "../navbar/ApplicationNavbar";
 import { ViewSegmentedControl } from "../navbar/ViewSegmentedControl";
 import { logsUrl } from "../routing/url";
@@ -18,6 +24,7 @@ import {
   resolveScorer,
   scorerOptions,
 } from "./alignRuns";
+import { AnchorOffsets, makeAnchorSync } from "./anchorSync";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
 import { InfoButton } from "./InfoButton";
@@ -29,11 +36,51 @@ import {
   taskVersionDiffers,
 } from "./runPicker";
 import { ScorerSelect } from "./ScorerSelect";
-import { makeScrollSync } from "./scrollSync";
 import { SideTranscript } from "./SideTranscript";
+import { alignAnchors, anchorsOf, StepAnchor } from "./stepAnchors";
 
 const runIdentity = (log: Log | undefined): string =>
   [log?.model, log?.task].filter(Boolean).join(" · ");
+
+// Scroll offset of each anchor's row, or undefined when the row is hidden
+// inside a collapsed group.
+const rowOffsets = (
+  view: TranscriptViewNodesHandle | null,
+  anchors: StepAnchor[]
+): (number | undefined)[] => {
+  const nodes = view?.getFlattenedNodes() ?? [];
+  const rowOf = new Map(nodes.map((node, index) => [node.id, index]));
+  return anchors.map((anchor) => {
+    const row = rowOf.get(anchor.eventId ?? `event_index_${anchor.eventIndex}`);
+    return row === undefined ? undefined : view?.getOffsetForIndex(row);
+  });
+};
+
+const scrollMax = (pane: HTMLElement): number =>
+  Math.max(0, pane.scrollHeight - pane.clientHeight);
+
+/** Offsets of the paired anchors both panes can currently locate, kept
+ *  strictly in order, framed by the start and end of each pane. */
+const anchorOffsets = (
+  paneA: HTMLElement,
+  paneB: HTMLElement,
+  offsetsA: (number | undefined)[],
+  offsetsB: (number | undefined)[]
+): AnchorOffsets => {
+  const a = [0];
+  const b = [0];
+  offsetsA.forEach((x, i) => {
+    const y = offsetsB[i];
+    if (x === undefined || y === undefined) return;
+    if (x <= (a.at(-1) ?? 0) || y <= (b.at(-1) ?? 0)) return;
+    if (x >= scrollMax(paneA) || y >= scrollMax(paneB)) return;
+    a.push(x);
+    b.push(y);
+  });
+  a.push(Math.max(scrollMax(paneA), a.at(-1) ?? 0));
+  b.push(Math.max(scrollMax(paneB), b.at(-1) ?? 0));
+  return { a, b };
+};
 
 export const ComparePage: FC = () => {
   const logDir = useLogDir();
@@ -44,48 +91,14 @@ export const ComparePage: FC = () => {
   const selectedKey = params.get("sample") ?? undefined;
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
-  const [scrollSync] = useState(makeScrollSync);
+  const [anchorSync] = useState(makeAnchorSync);
   const [sides, setSides] = useState<HTMLDivElement | null>(null);
   const paneA = useRef<HTMLDivElement>(null);
   const paneB = useRef<HTMLDivElement>(null);
+  const viewA = useRef<TranscriptViewNodesHandle>(null);
+  const viewB = useRef<TranscriptViewNodesHandle>(null);
   // The side scrolled last while unsynced; re-syncing snaps the other to it.
   const leader = useRef<"a" | "b">("a");
-
-  const toggleSync = (on: boolean): void => {
-    setSyncScroll(on);
-    const [from, to] = leader.current === "a" ? [paneA, paneB] : [paneB, paneA];
-    if (on && from.current && to.current)
-      scrollSync.snap(from.current, to.current);
-  };
-
-  // Wheel input moves both panes in the same frame; following the other
-  // pane's scroll event instead would lag it by a frame.
-  useEventListener(
-    sides,
-    "wheel",
-    (event) => {
-      if (!syncScroll || !paneA.current || !paneB.current) return;
-      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-      event.preventDefault();
-      const unit =
-        event.deltaMode === WheelEvent.DOM_DELTA_LINE
-          ? 16
-          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-            ? paneA.current.clientHeight
-            : 1;
-      scrollSync.scrollBoth(paneA.current, paneB.current, event.deltaY * unit);
-    },
-    { passive: false }
-  );
-
-  const onPaneScroll = (side: "a" | "b"): void => {
-    const [source, target] =
-      side === "a"
-        ? [paneA.current, paneB.current]
-        : [paneB.current, paneA.current];
-    if (!syncScroll) leader.current = side;
-    if (source) scrollSync.onScroll(source, target, syncScroll);
-  };
 
   // Kick off the dir listing sync — nothing else in this route mounts it,
   // unlike LogsPanel (its usual owner).
@@ -110,6 +123,84 @@ export const ComparePage: FC = () => {
   const scorer = resolveScorer(scorers, params.get("scorer") ?? undefined);
   const rows = a && b ? alignRuns(rowsA, rowsB, scorer) : [];
   const selected = rows.find((r) => r.key === selectedKey);
+  const sampleA = useEvalSampleData(
+    logDir,
+    selected?.a && a
+      ? { id: selected.id, epoch: selected.epoch, logFile: a }
+      : undefined
+  );
+  const sampleB = useEvalSampleData(
+    logDir,
+    selected?.b && b
+      ? { id: selected.id, epoch: selected.epoch, logFile: b }
+      : undefined
+  );
+  const anchorsA = anchorsOf(sampleA.sample?.events ?? []);
+  const anchorsB = anchorsOf(sampleB.sample?.events ?? []);
+  const pairs = alignAnchors(anchorsA, anchorsB);
+  const pairedA = pairs.flatMap((p) => anchorsA[p.a] ?? []);
+  const pairedB = pairs.flatMap((p) => anchorsB[p.b] ?? []);
+
+  // Offsets are read fresh on every scroll: rows get measured and groups
+  // expand or collapse, which moves the anchors.
+  const currentOffsets = (): AnchorOffsets | undefined => {
+    if (!paneA.current || !paneB.current) return undefined;
+    return anchorOffsets(
+      paneA.current,
+      paneB.current,
+      rowOffsets(viewA.current, pairedA),
+      rowOffsets(viewB.current, pairedB)
+    );
+  };
+
+  const toggleSync = (on: boolean): void => {
+    setSyncScroll(on);
+    const offsets = currentOffsets();
+    if (on && offsets && paneA.current && paneB.current)
+      anchorSync.snap(leader.current, paneA.current, paneB.current, offsets);
+  };
+
+  // Wheel input moves both panes in the same frame; following the other
+  // pane's scroll event instead would lag it by a frame.
+  useEventListener(
+    sides,
+    "wheel",
+    (event) => {
+      const offsets = currentOffsets();
+      if (!syncScroll || !offsets || !paneA.current || !paneB.current) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      if (!(event.target instanceof Node)) return;
+      event.preventDefault();
+      const driver = paneB.current.contains(event.target) ? "b" : "a";
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? paneA.current.clientHeight
+            : 1;
+      anchorSync.wheel(
+        driver,
+        paneA.current,
+        paneB.current,
+        event.deltaY * unit,
+        offsets
+      );
+    },
+    { passive: false }
+  );
+
+  const onPaneScroll = (side: "a" | "b"): void => {
+    if (!syncScroll) leader.current = side;
+    const offsets = currentOffsets();
+    if (offsets && paneA.current && paneB.current)
+      anchorSync.scrolled(
+        side,
+        paneA.current,
+        paneB.current,
+        offsets,
+        syncScroll
+      );
+  };
 
   const allRuns = sortRunsNewestFirst(logs.data ?? []);
   const logA = allRuns.find((log) => log.name === a);
@@ -202,10 +293,10 @@ export const ComparePage: FC = () => {
             </label>
             <InfoButton id="compare-sync-scroll-info" label="About sync scroll">
               <p className={styles.infoText}>
-                Experimental. While on, A and B scroll by the same distance.
-                Turning it back on lines the other side up with the one you
-                scrolled last. Sides are not yet aligned by agent step, so
-                matching steps can drift apart; this will improve.
+                Experimental. Matching agent steps pass the top of both sides
+                together; where one side has more to read, the other slows down
+                or waits at its step. Turning sync back on lines the other side
+                up with the one you scrolled last.
               </p>
             </InfoButton>
           </span>
@@ -257,6 +348,7 @@ export const ComparePage: FC = () => {
                     epoch={selected.epoch}
                     side="a"
                     paneRef={paneA}
+                    viewNodesRef={viewA}
                     onScroll={() => onPaneScroll("a")}
                   />
                 ) : (
@@ -279,6 +371,7 @@ export const ComparePage: FC = () => {
                     epoch={selected.epoch}
                     side="b"
                     paneRef={paneB}
+                    viewNodesRef={viewB}
                     onScroll={() => onPaneScroll("b")}
                   />
                 ) : (

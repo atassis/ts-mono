@@ -3,6 +3,7 @@ import { FC, RefObject, useRef, useState } from "react";
 import {
   TranscriptLayout,
   type TranscriptCollapseState,
+  type TranscriptViewNodesHandle,
 } from "@tsmono/inspect-components/transcript";
 import {
   ErrorPanel,
@@ -23,6 +24,8 @@ interface SideTranscriptProps {
   /** The pane that scrolls, for a parent that syncs two panes. */
   paneRef?: RefObject<HTMLDivElement | null>;
   onScroll?: () => void;
+  /** The transcript list's handle, to locate rows (e.g. anchor offsets). */
+  viewNodesRef?: RefObject<TranscriptViewNodesHandle | null>;
 }
 
 export const SideTranscript: FC<SideTranscriptProps> = ({
@@ -33,6 +36,7 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
   side,
   paneRef,
   onScroll,
+  viewNodesRef,
 }) => {
   const ownRef = useRef<HTMLDivElement>(null);
   const scrollRef = paneRef ?? ownRef;
@@ -89,6 +93,7 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
           timeline={{ showSwimlanes: false }}
           keyboardNavDisabled={true}
           collapseState={collapseState}
+          eventsListRef={viewNodesRef}
         />
       </div>
     </ExtendedFindProvider>

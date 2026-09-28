@@ -66,7 +66,9 @@ const actionClassSetOf = (signature: string): Set<string> =>
   signature === "text"
     ? new Set()
     : new Set(
-        signature.split("|").map((entry) => entry.slice(entry.lastIndexOf(":") + 1))
+        signature
+          .split("|")
+          .map((entry) => entry.slice(entry.lastIndexOf(":") + 1))
       );
 
 const setsEqual = (x: Set<string>, y: Set<string>): boolean =>
@@ -90,7 +92,10 @@ const matchScore = (x: StepAnchor, y: StepAnchor): number => {
  * side, the match wins; when two skips tie, advancing `a` wins over
  * advancing `b`.
  */
-export const alignAnchors = (a: StepAnchor[], b: StepAnchor[]): AnchorPair[] => {
+export const alignAnchors = (
+  a: StepAnchor[],
+  b: StepAnchor[]
+): AnchorPair[] => {
   const n = a.length;
   const m = b.length;
   const dp: number[][] = Array.from({ length: n + 1 }, () =>

@@ -44,7 +44,12 @@ describe("anchorsOf", () => {
       modelEvent([]),
     ]);
     expect(anchors).toEqual([
-      { eventIndex: 0, eventId: undefined, signature: "bash:read", label: "bash: read" },
+      {
+        eventIndex: 0,
+        eventId: undefined,
+        signature: "bash:read",
+        label: "bash: read",
+      },
       { eventIndex: 2, eventId: undefined, signature: "text", label: "text" },
     ]);
   });

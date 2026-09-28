@@ -33,7 +33,8 @@ const sideAt = (
   l: number,
   lmax: number,
   mode: "proportional" | "pause"
-): number => (mode === "proportional" ? start + t * l : start + Math.min(t * lmax, l));
+): number =>
+  mode === "proportional" ? start + t * l : start + Math.min(t * lmax, l);
 
 const clampPos = (pos: Position, maxK: number): Position => ({
   k: Math.min(Math.max(pos.k, 0), maxK),
