@@ -27,12 +27,20 @@ describe("makeScrollSync", () => {
     expect([a.scrollTop, b.scrollTop]).toEqual([120, 120]);
   });
 
-  test("scrollBoth lets each pane clamp on its own", () => {
+  test("a shorter pane waits at its end instead of drifting out of step", () => {
     const sync = makeScrollSync();
-    const a = pane(1000);
-    const b = pane(50);
-    sync.scrollBoth(a, b, 120);
-    expect([a.scrollTop, b.scrollTop]).toEqual([120, 50]);
+    const short = pane(500);
+    const long = pane(5000);
+    sync.scrollBoth(short, long, 2000);
+    expect([short.scrollTop, long.scrollTop]).toEqual([500, 2000]);
+    // Their scroll events must not pull the long pane back.
+    sync.onScroll(short, long, true);
+    sync.onScroll(long, short, true);
+    expect([short.scrollTop, long.scrollTop]).toEqual([500, 2000]);
+    sync.scrollBoth(short, long, -1000);
+    expect([short.scrollTop, long.scrollTop]).toEqual([500, 1000]);
+    sync.scrollBoth(short, long, -800);
+    expect([short.scrollTop, long.scrollTop]).toEqual([200, 200]);
   });
 
   test("onScroll carries other scrolls (scrollbar, keys) across", () => {
@@ -46,27 +54,13 @@ describe("makeScrollSync", () => {
     expect(a.scrollTop).toBe(300);
   });
 
-  test("onScroll does nothing when disabled but keeps tracking", () => {
+  test("onScroll does nothing when disabled", () => {
     const sync = makeScrollSync();
     const a = pane(1000);
     const b = pane(1000);
     a.scrollTop = 300;
     sync.onScroll(a, b, false);
     expect(b.scrollTop).toBe(0);
-    a.scrollTop = 350;
-    sync.onScroll(a, b, true);
-    expect(b.scrollTop).toBe(50);
-  });
-
-  test("a pane that can't move leaves no pending echo behind", () => {
-    const sync = makeScrollSync();
-    const a = pane(1000);
-    const b = pane(0);
-    a.scrollTop = 100;
-    sync.onScroll(a, b, true);
-    a.scrollTop = 200;
-    sync.onScroll(a, b, true);
-    expect(a.scrollTop).toBe(200);
   });
 
   test("snap lines the follower up with the leader", () => {

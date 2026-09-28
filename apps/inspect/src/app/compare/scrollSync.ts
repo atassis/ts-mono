@@ -2,11 +2,12 @@ export interface Scrollable {
   scrollTop: number;
 }
 
-/** Keeps two side-by-side panes scrolled together. `scrollBoth` moves both
- *  in the same frame (wheel input); `onScroll` carries any other scroll
- *  (scrollbar drag, keys) across a frame later; `snap` lines one pane up
- *  with the other. Positions are tracked per element, so the scroll events
- *  our own writes cause are recognized and ignored. */
+/** Keeps two side-by-side panes at the same scroll position; a shorter pane
+ *  rests at its end until the other comes back into its range. `scrollBoth`
+ *  moves both in the same frame (wheel input); `onScroll` carries any other
+ *  scroll (scrollbar drag, keys) across a frame later; `snap` lines one pane
+ *  up with the other. Positions we write are recorded, so the scroll events
+ *  they cause are recognized and ignored. */
 export const makeScrollSync = () => {
   const last = new WeakMap<Scrollable, number>();
   const record = (...panes: Scrollable[]): void => {
@@ -18,16 +19,19 @@ export const makeScrollSync = () => {
     target: Scrollable | null | undefined,
     enabled: boolean
   ): void => {
-    const delta = source.scrollTop - (last.get(source) ?? 0);
+    const moved = source.scrollTop !== (last.get(source) ?? 0);
     record(source);
-    if (!enabled || !target || delta === 0) return;
-    target.scrollTop += delta;
+    if (!enabled || !target || !moved) return;
+    target.scrollTop = source.scrollTop;
     record(target);
   };
 
   const scrollBoth = (a: Scrollable, b: Scrollable, delta: number): void => {
-    a.scrollTop += delta;
-    b.scrollTop += delta;
+    // The furthest pane holds the shared position; the other may be
+    // resting at its own end.
+    const position = Math.max(0, Math.max(a.scrollTop, b.scrollTop) + delta);
+    a.scrollTop = position;
+    b.scrollTop = position;
     record(a, b);
   };
 
