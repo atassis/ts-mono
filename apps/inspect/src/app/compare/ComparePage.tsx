@@ -56,6 +56,7 @@ import { SyncStatus, syncStatus } from "./syncStatus";
 const kHeaderGlyph: Record<EpochMark, string> = {
   pass: "✓",
   fail: "✕",
+  limit: "▲",
   error: "!",
   other: "?",
   missing: "·",
