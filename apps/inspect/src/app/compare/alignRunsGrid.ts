@@ -2,8 +2,15 @@ import { ScoreValue } from "../../@types/extraInspect";
 import { SampleSummary } from "../../client/api/types";
 
 import { outcomeOf, sampleKey } from "./alignRuns";
+import { failureKind } from "./failureKind";
 
-export type GridOutcome = "pass" | "fail" | "other" | "error" | "missing";
+export type GridOutcome =
+  | "pass"
+  | "fail"
+  | "other"
+  | "error"
+  | "limit"
+  | "missing";
 
 export interface GridCell {
   runIndex: number;
@@ -55,16 +62,26 @@ export const firstCommonScorerN = (
   return undefined;
 };
 
-const cellOutcome = (
-  sample: SampleSummary | undefined,
+/** A sample's outcome for grid display: infra failures (error, then limit)
+ *  take precedence over the scored value, mirroring `failureKind`'s
+ *  precedence so marks and the run-profile breakdown agree. */
+export const classifyOutcome = (
+  sample: SampleSummary,
   scorer: string | undefined
 ): { outcome: GridOutcome; value?: ScoreValue } => {
-  if (!sample) return { outcome: "missing" };
-  if (sample.error) return { outcome: "error" };
+  const kind = failureKind(sample);
+  if (kind.kind === "error") return { outcome: "error" };
+  if (kind.kind === "limit") return { outcome: "limit" };
   const value =
     scorer === undefined ? undefined : sample.scores?.[scorer]?.value;
   return { outcome: outcomeOf(value), value };
 };
+
+const cellOutcome = (
+  sample: SampleSummary | undefined,
+  scorer: string | undefined
+): { outcome: GridOutcome; value?: ScoreValue } =>
+  sample ? classifyOutcome(sample, scorer) : { outcome: "missing" };
 
 /**
  * Aligns N runs by (id, epoch) into a samples x runs matrix, with a
