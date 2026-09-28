@@ -31,6 +31,15 @@ type Outcome = "pass" | "fail" | "other";
 export const sampleKey = (id: string | number, epoch: number): string =>
   `${String(id)}#${epoch}`;
 
+/** Inverse of sampleKey. Falls back to epoch 1 for a malformed key so
+ *  callers can pass an unparsed URL param without crashing. */
+export const parseSampleKey = (key: string): { id: string; epoch: number } => {
+  const at = key.lastIndexOf("#");
+  if (at < 0) return { id: key, epoch: 1 };
+  const epoch = Number(key.slice(at + 1));
+  return { id: key.slice(0, at), epoch: Number.isFinite(epoch) ? epoch : 1 };
+};
+
 const kPassFailLetters = new Set(["C", "I", "P", "N", "A", "B", "F"]);
 
 // Same heuristic ScoreValueDisplay needs to pick a renderer (circle vs

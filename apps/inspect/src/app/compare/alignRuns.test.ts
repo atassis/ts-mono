@@ -7,6 +7,7 @@ import {
   alignRuns,
   inferScoreType,
   outcomeOf,
+  parseSampleKey,
   resolveScorer,
   sampleKey,
   scorerOptions,
@@ -33,6 +34,18 @@ const s = (
 describe("sampleKey", () => {
   test("treats numeric and string ids alike", () => {
     expect(sampleKey(1, 2)).toBe(sampleKey("1", 2));
+  });
+});
+
+describe("parseSampleKey", () => {
+  test("round-trips sampleKey", () => {
+    expect(parseSampleKey(sampleKey("17", 3))).toEqual({
+      id: "17",
+      epoch: 3,
+    });
+  });
+  test("falls back to epoch 1 for a key with no epoch", () => {
+    expect(parseSampleKey("17")).toEqual({ id: "17", epoch: 1 });
   });
 });
 

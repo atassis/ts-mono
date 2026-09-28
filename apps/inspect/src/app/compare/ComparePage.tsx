@@ -21,13 +21,22 @@ import { ScoreValueDisplay } from "../samples/header-v2/ScoreValueDisplay";
 import {
   alignRuns,
   inferScoreType,
+  parseSampleKey,
   resolveScorer,
+  sampleKey,
   scorerOptions,
 } from "./alignRuns";
 import { AnchorOffsets, makeAnchorSync } from "./anchorSync";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
 import { ConfigStrip } from "./ConfigStrip";
+import {
+  defaultEpochPair,
+  isEpochsMode,
+  nextPickSide,
+  PickSide,
+  resolveEpochPair,
+} from "./epochPair";
 import { InfoButton } from "./InfoButton";
 import { RunPicker } from "./RunPicker";
 import {
@@ -36,10 +45,27 @@ import {
   tasksDiffer,
   taskVersionDiffers,
 } from "./runPicker";
+import { EpochCell, EpochMark, groupBySample } from "./sampleGroups";
 import { ScorerSelect } from "./ScorerSelect";
 import { SideTranscript } from "./SideTranscript";
 import { alignAnchors, anchorsOf, StepAnchor } from "./stepAnchors";
 import { SyncStatus, syncStatus } from "./syncStatus";
+
+// The header's status glyph reads differently from the strip's marks
+// (✓/✕ vs ●/✕) since it stands alone, without a neighbouring tally.
+const kHeaderGlyph: Record<EpochMark, string> = {
+  pass: "✓",
+  fail: "✕",
+  error: "!",
+  other: "?",
+  missing: "·",
+};
+
+const cellForEpoch = (
+  cells: EpochCell[],
+  epoch: number | undefined
+): EpochCell | undefined =>
+  epoch === undefined ? undefined : cells.find((c) => c.epoch === epoch);
 
 const runIdentity = (log: Log | undefined): string =>
   [log?.model, log?.task].filter(Boolean).join(" · ");
@@ -116,8 +142,10 @@ export const ComparePage: FC = () => {
   const a = params.get("a") ?? undefined;
   const b = params.get("b") ?? undefined;
   const selectedKey = params.get("sample") ?? undefined;
+  const epochsMode = isEpochsMode(a, b);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
+  const [pickSide, setPickSide] = useState<PickSide>("a");
   const [anchorSync] = useState(makeAnchorSync);
   const [sides, setSides] = useState<HTMLDivElement | null>(null);
   const paneA = useRef<HTMLDivElement>(null);
@@ -141,7 +169,20 @@ export const ComparePage: FC = () => {
     const next = new URLSearchParams(params);
     next.set(key, value);
     if (key === "a" || key === "b") next.delete("sample");
+    // A different sample (or run) invalidates any explicit epoch pick —
+    // epochs mode recomputes its default from the newly selected sample.
+    if (key === "a" || key === "b" || key === "sample") {
+      next.delete("epochA");
+      next.delete("epochB");
+    }
     setParams(next);
+  };
+
+  const pickEpoch = (epoch: number): void => {
+    const next = new URLSearchParams(params);
+    next.set(pickSide === "a" ? "epochA" : "epochB", String(epoch));
+    setParams(next);
+    setPickSide(nextPickSide(pickSide));
   };
 
   const rowsA = summariesA.data ?? [];
@@ -150,16 +191,57 @@ export const ComparePage: FC = () => {
   const scorer = resolveScorer(scorers, params.get("scorer") ?? undefined);
   const rows = a && b ? alignRuns(rowsA, rowsB, scorer) : [];
   const selected = rows.find((r) => r.key === selectedKey);
+
+  const compareEpochs = (): void => {
+    if (!a || !selected) return;
+    const next = new URLSearchParams(params);
+    next.set("b", a);
+    next.set("sample", sampleKey(selected.id, selected.epoch));
+    next.delete("epochA");
+    next.delete("epochB");
+    setParams(next);
+  };
+
+  const parsedSample = selectedKey ? parseSampleKey(selectedKey) : undefined;
+  const selectedGroup = epochsMode
+    ? groupBySample(rows).find((g) => String(g.id) === parsedSample?.id)
+    : undefined;
+  const epochAParam = params.get("epochA") ?? undefined;
+  const epochBParam = params.get("epochB") ?? undefined;
+  const epochPair =
+    epochsMode && selectedGroup
+      ? epochAParam === undefined && epochBParam === undefined
+        ? defaultEpochPair(selectedGroup.a)
+        : resolveEpochPair(epochAParam, epochBParam, parsedSample?.epoch ?? 1)
+      : undefined;
+  const cellA = epochPair
+    ? cellForEpoch(selectedGroup?.a ?? [], epochPair.epochA)
+    : undefined;
+  const cellB = epochPair
+    ? cellForEpoch(selectedGroup?.b ?? [], epochPair.epochB)
+    : undefined;
+
+  const hasSelection = epochsMode ? !!selectedGroup : !!selected;
+  const idForSelection = epochsMode ? selectedGroup?.id : selected?.id;
+  const inA = epochsMode
+    ? cellA !== undefined && cellA.mark !== "missing"
+    : !!selected?.a;
+  const inB = epochsMode
+    ? cellB !== undefined && cellB.mark !== "missing"
+    : !!selected?.b;
+  const epochForA = epochsMode ? epochPair?.epochA : selected?.epoch;
+  const epochForB = epochsMode ? epochPair?.epochB : selected?.epoch;
+
   const sampleA = useEvalSampleData(
     logDir,
-    selected?.a && a
-      ? { id: selected.id, epoch: selected.epoch, logFile: a }
+    idForSelection !== undefined && inA && a && epochForA !== undefined
+      ? { id: idForSelection, epoch: epochForA, logFile: a }
       : undefined
   );
   const sampleB = useEvalSampleData(
     logDir,
-    selected?.b && b
-      ? { id: selected.id, epoch: selected.epoch, logFile: b }
+    idForSelection !== undefined && inB && b && epochForB !== undefined
+      ? { id: idForSelection, epoch: epochForB, logFile: b }
       : undefined
   );
   const anchorsA = anchorsOf(sampleA.sample?.events ?? []);
@@ -335,7 +417,28 @@ export const ComparePage: FC = () => {
             onSelect={(name) => update("scorer", name)}
           />
         ) : null}
-        {selected ? (
+        {epochsMode && hasSelection ? (
+          <span className={styles.pickToggle}>
+            Pick epoch for
+            <button
+              type="button"
+              aria-pressed={pickSide === "a"}
+              className={styles.pickButton}
+              onClick={() => setPickSide("a")}
+            >
+              A
+            </button>
+            <button
+              type="button"
+              aria-pressed={pickSide === "b"}
+              className={styles.pickButton}
+              onClick={() => setPickSide("b")}
+            >
+              B
+            </button>
+          </span>
+        ) : null}
+        {hasSelection ? (
           <span className={styles.syncToggle}>
             <label className={styles.showAllTasks}>
               <input
@@ -391,30 +494,54 @@ export const ComparePage: FC = () => {
             rows={rows}
             selectedKey={selectedKey}
             onSelect={(key) => update("sample", key)}
+            epochsMode={epochsMode}
+            epochA={epochPair?.epochA}
+            epochB={epochPair?.epochB}
+            onPickEpoch={pickEpoch}
           />
           {!a || !b ? (
             <div className={styles.placeholder}>Pick a log for A and B</div>
-          ) : selected ? (
+          ) : hasSelection ? (
             <div ref={setSides} className={styles.sides}>
               <div className={styles.side}>
                 <div className={styles.sideHeader}>
-                  A · {runIdentity(logA)} ·{" "}
-                  <ScoreValueDisplay
-                    value={selected.valueA}
-                    scoreType={inferScoreType(selected.valueA)}
-                  />
+                  {epochsMode ? (
+                    <>
+                      A · epoch {epochForA}
+                      {cellA ? <> {kHeaderGlyph[cellA.mark]}</> : null}
+                    </>
+                  ) : (
+                    <>
+                      A · {runIdentity(logA)} ·{" "}
+                      <ScoreValueDisplay
+                        value={selected?.valueA}
+                        scoreType={inferScoreType(selected?.valueA)}
+                      />
+                      {selected ? (
+                        <button
+                          type="button"
+                          className={styles.moreRuns}
+                          onClick={compareEpochs}
+                        >
+                          compare epochs
+                        </button>
+                      ) : null}
+                    </>
+                  )}
                   {syncScroll && status?.stepA !== undefined ? (
                     <span className={styles.stepLabel}>
                       step {status.stepA}/{anchorsA.length}
                     </span>
                   ) : null}
                 </div>
-                {selected.a ? (
+                {inA &&
+                idForSelection !== undefined &&
+                epochForA !== undefined ? (
                   <SideTranscript
                     logDir={logDir}
                     logFile={a}
-                    id={selected.id}
-                    epoch={selected.epoch}
+                    id={idForSelection}
+                    epoch={epochForA}
                     side="a"
                     paneRef={paneA}
                     viewNodesRef={viewA}
@@ -431,23 +558,34 @@ export const ComparePage: FC = () => {
               </div>
               <div className={styles.side}>
                 <div className={styles.sideHeader}>
-                  B · {runIdentity(logB)} ·{" "}
-                  <ScoreValueDisplay
-                    value={selected.valueB}
-                    scoreType={inferScoreType(selected.valueB)}
-                  />
+                  {epochsMode ? (
+                    <>
+                      B · epoch {epochForB}
+                      {cellB ? <> {kHeaderGlyph[cellB.mark]}</> : null}
+                    </>
+                  ) : (
+                    <>
+                      B · {runIdentity(logB)} ·{" "}
+                      <ScoreValueDisplay
+                        value={selected?.valueB}
+                        scoreType={inferScoreType(selected?.valueB)}
+                      />
+                    </>
+                  )}
                   {syncScroll && status?.stepB !== undefined ? (
                     <span className={styles.stepLabel}>
                       step {status.stepB}/{anchorsB.length}
                     </span>
                   ) : null}
                 </div>
-                {selected.b ? (
+                {inB &&
+                idForSelection !== undefined &&
+                epochForB !== undefined ? (
                   <SideTranscript
                     logDir={logDir}
                     logFile={b}
-                    id={selected.id}
-                    epoch={selected.epoch}
+                    id={idForSelection}
+                    epoch={epochForB}
                     side="b"
                     paneRef={paneB}
                     viewNodesRef={viewB}

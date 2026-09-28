@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { FC, useState } from "react";
 
-import { AlignedSample } from "./alignRuns";
+import { AlignedSample, parseSampleKey } from "./alignRuns";
 import { CategoryLegend } from "./CategoryLegend";
 import styles from "./compare.module.css";
 import { EpochStrip } from "./EpochStrip";
@@ -28,6 +28,17 @@ const kFilters: Filter[] = [
   "error",
 ];
 
+// Epochs mode compares one run against itself: A-vs-B categories like
+// "improved"/"only-a" never occur, so only the categories that still mean
+// something (all-pass, all-fail, errored) are offered.
+const kFiltersEpochs: Filter[] = [
+  "all",
+  "flaky",
+  "both-pass",
+  "both-fail",
+  "error",
+];
+
 const show = (filter: Filter, group: SampleGroup): boolean => {
   if (filter === "all") return true;
   if (filter === "flaky") return group.flaky;
@@ -47,17 +58,31 @@ interface CompareTableProps {
   rows: AlignedSample[];
   selectedKey: string | undefined;
   onSelect: (key: string) => void;
+  /** Comparing two epochs of one run: one strip per sample instead of two,
+   *  and marks pick an independent epoch for A/B instead of the row's
+   *  single "sample" selection. */
+  epochsMode?: boolean;
+  epochA?: number;
+  epochB?: number;
+  onPickEpoch?: (epoch: number) => void;
 }
 
 export const CompareTable: FC<CompareTableProps> = ({
   rows,
   selectedKey,
   onSelect,
+  epochsMode = false,
+  epochA,
+  epochB,
+  onPickEpoch,
 }) => {
+  const filters = epochsMode ? kFiltersEpochs : kFilters;
   const [filter, setFilter] = useState<Filter>("all");
   const groups = sortGroups(groupBySample(rows));
   const visible = groups.filter((g) => show(filter, g));
   const count = (f: Filter): number => groups.filter((g) => show(f, g)).length;
+  const onMarkSelect = (key: string): void =>
+    epochsMode ? onPickEpoch?.(parseSampleKey(key).epoch) : onSelect(key);
 
   return (
     <div className={styles.tableWrap}>
@@ -68,11 +93,11 @@ export const CompareTable: FC<CompareTableProps> = ({
             aria-label="Show"
             value={filter}
             onChange={(e) => {
-              const next = kFilters.find((f) => f === e.target.value);
+              const next = filters.find((f) => f === e.target.value);
               setFilter(next ?? "all");
             }}
           >
-            {kFilters.map((f) => (
+            {filters.map((f) => (
               <option key={f} value={f}>
                 {f} ({count(f)})
               </option>
@@ -85,8 +110,14 @@ export const CompareTable: FC<CompareTableProps> = ({
         <thead>
           <tr>
             <th>Sample</th>
-            <th>A</th>
-            <th>B</th>
+            {epochsMode ? (
+              <th>Epochs</th>
+            ) : (
+              <>
+                <th>A</th>
+                <th>B</th>
+              </>
+            )}
             <th>Outcome</th>
           </tr>
         </thead>
@@ -99,7 +130,7 @@ export const CompareTable: FC<CompareTableProps> = ({
               <tr
                 key={String(g.id)}
                 className={clsx(
-                  kCategoryClass[g.category],
+                  !epochsMode && kCategoryClass[g.category],
                   selected && styles.selected
                 )}
                 aria-selected={selected}
@@ -113,28 +144,45 @@ export const CompareTable: FC<CompareTableProps> = ({
                     {String(g.id)}
                   </button>
                 </td>
+                {epochsMode ? (
+                  <td>
+                    <EpochStrip
+                      label="Epoch"
+                      cells={g.a}
+                      pass={g.passA}
+                      scored={g.scoredA}
+                      selectedKey={selectedKey}
+                      onSelect={onMarkSelect}
+                      epochA={epochA}
+                      epochB={epochB}
+                    />
+                  </td>
+                ) : (
+                  <>
+                    <td>
+                      <EpochStrip
+                        label="A"
+                        cells={g.a}
+                        pass={g.passA}
+                        scored={g.scoredA}
+                        selectedKey={selectedKey}
+                        onSelect={onMarkSelect}
+                      />
+                    </td>
+                    <td>
+                      <EpochStrip
+                        label="B"
+                        cells={g.b}
+                        pass={g.passB}
+                        scored={g.scoredB}
+                        selectedKey={selectedKey}
+                        onSelect={onMarkSelect}
+                      />
+                    </td>
+                  </>
+                )}
                 <td>
-                  <EpochStrip
-                    label="A"
-                    cells={g.a}
-                    pass={g.passA}
-                    scored={g.scoredA}
-                    selectedKey={selectedKey}
-                    onSelect={onSelect}
-                  />
-                </td>
-                <td>
-                  <EpochStrip
-                    label="B"
-                    cells={g.b}
-                    pass={g.passB}
-                    scored={g.scoredB}
-                    selectedKey={selectedKey}
-                    onSelect={onSelect}
-                  />
-                </td>
-                <td>
-                  {g.category}
+                  {epochsMode ? `${g.passA}/${g.scoredA}` : g.category}
                   {g.flaky ? (
                     <span className={styles.flaky}> · flaky</span>
                   ) : null}
