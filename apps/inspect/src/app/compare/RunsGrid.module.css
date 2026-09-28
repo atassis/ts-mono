@@ -25,8 +25,9 @@
   font-weight: 600;
 }
 
-.runHeader {
-  min-width: 7rem;
+.grid th.runHeader {
+  min-width: 9rem;
+  white-space: normal;
 }
 
 .runTitle {
@@ -139,4 +140,69 @@
 
 .cell {
   padding-right: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.3rem 0.6rem;
+  font-size: var(--inspect-font-size-small);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: var(--bs-secondary-color);
+}
+
+.legendItem {
+  font-weight: 600;
+}
+
+.legendPass {
+  color: var(--bs-success);
+}
+.legendFail {
+  color: var(--bs-danger);
+}
+.legendLimit {
+  color: var(--bs-orange);
+}
+.legendError {
+  color: var(--bs-warning);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.orderToggle {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.orderButton {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  padding: 0.1rem 0.5rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.orderButtonActive {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
+  font-weight: 600;
+}
+
+.runStats {
+  white-space: nowrap;
 }

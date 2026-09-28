@@ -16,7 +16,7 @@ import { logsUrl } from "../routing/url";
 
 import { alignRunsGrid, firstCommonScorerN } from "./alignRunsGrid";
 import { FrontierChart } from "./FrontierChart";
-import { groupGridBySample, sortGridSamples } from "./gridGroups";
+import { groupGridBySample } from "./gridGroups";
 import { RunPicker } from "./RunPicker";
 import { sortRunsNewestFirst } from "./runPicker";
 import { RunsGrid } from "./RunsGrid";
@@ -82,7 +82,7 @@ export const RunsGridPage: FC = () => {
   const scorer = firstCommonScorerN(sampleLists);
   const rows =
     runNames.length >= 2
-      ? sortGridSamples(groupGridBySample(alignRunsGrid(sampleLists, scorer)))
+      ? groupGridBySample(alignRunsGrid(sampleLists, scorer))
       : [];
   const task = runLogs.find((log) => log?.task)?.task;
 
@@ -118,8 +118,9 @@ export const RunsGridPage: FC = () => {
           <span className={styles.captionText}>
             {runNames.length} runs{task ? ` of ${task}` : ""}
             {scorer ? `, scored by ${scorer}` : ""}. Each cell shows a
-            run&apos;s epochs (● pass, ✕ fail) and how many it passed. Click a
-            row or mark to open it side by side with the baseline.
+            run&apos;s epochs (● pass, ✕ fail, ▲ limit, ! error) and how many it
+            passed. Click a row or mark to open it side by side with the
+            baseline.
           </span>
           {addRunPicker}
         </div>
@@ -145,6 +146,7 @@ export const RunsGridPage: FC = () => {
           <RunsGrid
             runs={runLogs}
             rows={rows}
+            sampleLists={sampleLists}
             scorer={scorer}
             baselineIndex={baselineIndex}
             onSelectBaseline={setBaselineIndex}

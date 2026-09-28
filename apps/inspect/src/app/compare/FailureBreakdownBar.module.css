@@ -1,0 +1,44 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.15rem;
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 0.4rem;
+  border-radius: 0.2rem;
+  overflow: hidden;
+  background: var(--bs-tertiary-bg);
+}
+
+.segment {
+  min-width: 2px;
+  border-radius: 1px;
+}
+
+.segPass {
+  background: var(--bs-success);
+}
+.segFail {
+  background: var(--bs-danger);
+}
+.segLimit {
+  background: var(--bs-orange);
+}
+.segError {
+  background: var(--bs-warning);
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-weight: normal;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
