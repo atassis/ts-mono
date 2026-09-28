@@ -230,16 +230,22 @@ export const RunsGrid: FC<RunsGridProps> = ({
                     {runIndex === baselineIndex ? (
                       <span className={styles.baselineTag}>baseline</span>
                     ) : null}
-                    {accuracyText(profile)}
+                    <span className={styles.accuracy}>
+                      {accuracyText(profile)}
+                    </span>
                     {profile.medianTokens !== undefined ||
                     profile.medianTime !== undefined ? (
                       <span className={styles.runStats}>
-                        {profile.medianTokens !== undefined
-                          ? ` · ${formatNumber(Math.round(profile.medianTokens))} tok`
-                          : ""}
-                        {profile.medianTime !== undefined
-                          ? ` · ${formatTime(profile.medianTime)}`
-                          : ""}
+                        {[
+                          profile.medianTokens !== undefined
+                            ? `${formatNumber(Math.round(profile.medianTokens))} tok`
+                            : undefined,
+                          profile.medianTime !== undefined
+                            ? formatTime(profile.medianTime)
+                            : undefined,
+                        ]
+                          .filter((part) => part !== undefined)
+                          .join(" · ")}
                         {" median"}
                       </span>
                     ) : null}

@@ -203,6 +203,11 @@
   font-weight: 600;
 }
 
+.accuracy {
+  white-space: nowrap;
+}
+
 .runStats {
+  display: block;
   white-space: nowrap;
 }
