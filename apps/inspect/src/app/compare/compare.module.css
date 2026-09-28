@@ -205,6 +205,10 @@
   color: var(--bs-danger);
   font-weight: 700;
 }
+.markLimit {
+  color: var(--bs-orange);
+  font-weight: 700;
+}
 .markError {
   color: var(--bs-warning);
   font-weight: 700;

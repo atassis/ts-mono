@@ -1,8 +1,15 @@
 import { SampleSummary } from "../../client/api/types";
 
 import { AlignedSample, outcomeOf, sampleKey } from "./alignRuns";
+import { failureKind } from "./failureKind";
 
-export type EpochMark = "pass" | "fail" | "other" | "error" | "missing";
+export type EpochMark =
+  | "pass"
+  | "fail"
+  | "other"
+  | "error"
+  | "limit"
+  | "missing";
 
 export type GroupCategory =
   | "improved"
@@ -43,7 +50,9 @@ const markOf = (
   value: AlignedSample["valueA"]
 ): EpochMark => {
   if (!sample) return "missing";
-  if (sample.error) return "error";
+  const kind = failureKind(sample);
+  if (kind.kind === "error") return "error";
+  if (kind.kind === "limit") return "limit";
   const outcome = outcomeOf(value);
   return outcome === "other" ? "other" : outcome;
 };

@@ -4,9 +4,12 @@ import { FC } from "react";
 import styles from "./compare.module.css";
 import { EpochCell, EpochMark } from "./sampleGroups";
 
+// Glyph shape carries the distinction as well as color, so pass/fail/limit/
+// error stay readable without relying on hue alone (CVD, print, grayscale).
 const kMark: Record<EpochMark, { glyph: string; className: string }> = {
   pass: { glyph: "●", className: styles.markPass },
   fail: { glyph: "✕", className: styles.markFail },
+  limit: { glyph: "▲", className: styles.markLimit },
   error: { glyph: "!", className: styles.markError },
   other: { glyph: "?", className: styles.markOther },
   missing: { glyph: "·", className: styles.markMissing },
