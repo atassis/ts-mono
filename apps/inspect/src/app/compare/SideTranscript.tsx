@@ -1,6 +1,9 @@
-import { FC, RefObject, useRef } from "react";
+import { FC, RefObject, useRef, useState } from "react";
 
-import { TranscriptLayout } from "@tsmono/inspect-components/transcript";
+import {
+  TranscriptLayout,
+  type TranscriptCollapseState,
+} from "@tsmono/inspect-components/transcript";
 import {
   ErrorPanel,
   ExtendedFindProvider,
@@ -35,6 +38,28 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
   const scrollRef = paneRef ?? ownRef;
   const data = useEvalSampleData(logDir, { id, epoch, logFile });
 
+  // Without collapseState the chevrons are no-ops. `ids` starts undefined,
+  // not {}: the transcript falls back to its default collapsed set only
+  // for a missing map, and seeds those defaults on the first toggle.
+  const sampleKey = `${logFile}:${id}:${epoch}`;
+  const [collapsed, setCollapsed] = useState<{
+    key: string;
+    ids: Record<string, boolean> | undefined;
+  }>({ key: sampleKey, ids: undefined });
+  if (collapsed.key !== sampleKey) {
+    setCollapsed({ key: sampleKey, ids: undefined });
+  }
+  const collapseState: TranscriptCollapseState = {
+    transcript: collapsed.ids,
+    onCollapseTranscript: (nodeId, isCollapsed) =>
+      setCollapsed((prev) => ({
+        key: prev.key,
+        ids: { ...prev.ids, [nodeId]: isCollapsed },
+      })),
+    onSetTranscriptCollapsed: (ids) =>
+      setCollapsed((prev) => ({ key: prev.key, ids })),
+  };
+
   if (data.error) {
     return (
       <div className={styles.pane}>
@@ -63,6 +88,7 @@ export const SideTranscript: FC<SideTranscriptProps> = ({
           embedded
           timeline={{ showSwimlanes: false }}
           keyboardNavDisabled={true}
+          collapseState={collapseState}
         />
       </div>
     </ExtendedFindProvider>
