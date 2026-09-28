@@ -61,6 +61,26 @@
   font-size: var(--inspect-font-size-small);
   color: var(--bs-secondary-color);
 }
+.scorerBase {
+  display: grid;
+  align-items: center;
+  column-gap: 0.6rem;
+  flex: 1;
+  font-size: var(--inspect-font-size-small);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+.scorerRow {
+  grid-template-columns: minmax(6rem, 12rem) 6rem 6rem;
+}
+.scorerCompact {
+  grid-template-columns: repeat(3, max-content);
+  column-gap: 0.75rem;
+}
+.disabledOption {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .placeholder {
   grid-column: 2 / -1;
   padding: 0.75rem;

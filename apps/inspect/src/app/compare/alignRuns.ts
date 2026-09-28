@@ -51,43 +51,6 @@ export const outcomeOf = (value: ScoreValue | undefined): Outcome => {
   return "other";
 };
 
-export interface ScorerOption {
-  name: string;
-  inA: boolean;
-  inB: boolean;
-}
-
-const scorerNames = (samples: SampleSummary[]): Set<string> => {
-  const names = new Set<string>();
-  for (const sample of samples) {
-    for (const name of Object.keys(sample.scores ?? {})) names.add(name);
-  }
-  return names;
-};
-
-/** Every scorer either run has, so one-sided scorers can be shown (but not
- *  picked) instead of silently dropped. */
-export const scorerOptions = (
-  a: SampleSummary[],
-  b: SampleSummary[]
-): ScorerOption[] => {
-  const inA = scorerNames(a);
-  const inB = scorerNames(b);
-  return [...new Set([...inA, ...inB])].map((name) => ({
-    name,
-    inA: inA.has(name),
-    inB: inB.has(name),
-  }));
-};
-
-export const resolveScorer = (
-  options: ScorerOption[],
-  requested: string | undefined
-): string | undefined => {
-  const common = options.filter((o) => o.inA && o.inB);
-  return (common.find((o) => o.name === requested) ?? common[0])?.name;
-};
-
 const valueOf = (
   sample: SampleSummary | undefined,
   scorer: string | undefined
@@ -116,6 +79,67 @@ const toNumber = (value: ScoreValue | undefined): number | undefined => {
     if (isFiniteNumberString(value)) return Number(value);
   }
   return undefined;
+};
+
+export interface ScorerStat {
+  /** value_to_float mean over the samples the scorer scored. */
+  mean: number | undefined;
+  n: number;
+}
+
+export interface ScorerOption {
+  name: string;
+  inA: boolean;
+  inB: boolean;
+  statA?: ScorerStat;
+  statB?: ScorerStat;
+}
+
+const scorerStats = (samples: SampleSummary[]): Map<string, ScorerStat> => {
+  const acc = new Map<string, { sum: number; numeric: number; n: number }>();
+  for (const sample of samples) {
+    for (const [name, score] of Object.entries(sample.scores ?? {})) {
+      const entry = acc.get(name) ?? { sum: 0, numeric: 0, n: 0 };
+      entry.n += 1;
+      const value = toNumber(score.value);
+      if (value !== undefined) {
+        entry.sum += value;
+        entry.numeric += 1;
+      }
+      acc.set(name, entry);
+    }
+  }
+  return new Map(
+    [...acc].map(([name, { sum, numeric, n }]) => [
+      name,
+      { mean: numeric > 0 ? sum / numeric : undefined, n },
+    ])
+  );
+};
+
+/** Every scorer either run has, so one-sided scorers can be shown (but not
+ *  picked) instead of silently dropped. */
+export const scorerOptions = (
+  a: SampleSummary[],
+  b: SampleSummary[]
+): ScorerOption[] => {
+  const statsA = scorerStats(a);
+  const statsB = scorerStats(b);
+  return [...new Set([...statsA.keys(), ...statsB.keys()])].map((name) => ({
+    name,
+    inA: statsA.has(name),
+    inB: statsB.has(name),
+    statA: statsA.get(name),
+    statB: statsB.get(name),
+  }));
+};
+
+export const resolveScorer = (
+  options: ScorerOption[],
+  requested: string | undefined
+): string | undefined => {
+  const common = options.filter((o) => o.inA && o.inB);
+  return (common.find((o) => o.name === requested) ?? common[0])?.name;
 };
 
 const classify = (

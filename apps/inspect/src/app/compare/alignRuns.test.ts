@@ -85,7 +85,9 @@ describe("scorerOptions", () => {
   test("lists the union, A's order first, flagging which side has each", () => {
     const a = [scored(["f1", "match"])];
     const b = [scored(["match", "judge"])];
-    expect(scorerOptions(a, b)).toEqual([
+    expect(
+      scorerOptions(a, b).map(({ name, inA, inB }) => ({ name, inA, inB }))
+    ).toEqual([
       { name: "f1", inA: true, inB: false },
       { name: "match", inA: true, inB: true },
       { name: "judge", inA: false, inB: true },
@@ -94,9 +96,18 @@ describe("scorerOptions", () => {
   test("collects names across all samples, not just the first", () => {
     const a = [s(1, 1), scored(["match"])];
     const b = [scored(["match"])];
-    expect(scorerOptions(a, b)).toEqual([
-      { name: "match", inA: true, inB: true },
-    ]);
+    expect(scorerOptions(a, b).map((o) => o.name)).toEqual(["match"]);
+  });
+  test("summarizes each side as value_to_float mean over scored samples", () => {
+    const a = [s(1, 1, "C"), s(2, 1, "I"), s(3, 1, "P"), s(4, 1)];
+    const b = [s(1, 1, "C")];
+    const [match] = scorerOptions(a, b);
+    expect(match?.statA).toEqual({ mean: 0.5, n: 3 });
+    expect(match?.statB).toEqual({ mean: 1, n: 1 });
+  });
+  test("no stat for the side without the scorer", () => {
+    const [f1] = scorerOptions([scored(["f1"])], [s(1, 1)]);
+    expect(f1?.statB).toBeUndefined();
   });
 });
 

@@ -1,48 +1,73 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { ScorerOption } from "./alignRuns";
 import { ScorerSelect } from "./ScorerSelect";
 
 afterEach(cleanup);
 
+const options: ScorerOption[] = [
+  {
+    name: "match",
+    inA: true,
+    inB: true,
+    statA: { mean: 0.9, n: 10 },
+    statB: { mean: 0.8, n: 10 },
+  },
+  { name: "f1", inA: true, inB: false, statA: { mean: 0.5, n: 10 } },
+  { name: "judge", inA: true, inB: true },
+];
+
+const openMenu = (): void => {
+  fireEvent.click(screen.getByRole("button", { name: "Scorer" }));
+};
+
 describe("ScorerSelect", () => {
-  test("shows one-sided scorers disabled, with the side that has them", () => {
+  test("lists one-sided scorers as disabled, naming the missing side", () => {
     render(
-      <ScorerSelect
-        options={[
-          { name: "match", inA: true, inB: true },
-          { name: "f1", inA: true, inB: false },
-          { name: "judge", inA: false, inB: true },
-        ]}
-        selected="match"
-        onSelect={vi.fn()}
-      />
+      <ScorerSelect options={options} selected="match" onSelect={vi.fn()} />
     );
-    const option = (name: RegExp): HTMLOptionElement => {
-      const el = screen.getByRole("option", { name });
-      if (!(el instanceof HTMLOptionElement)) throw new Error("not an option");
-      return el;
-    };
-    expect(option(/^match$/).disabled).toBe(false);
-    expect(option(/f1 \(only in A\)/).disabled).toBe(true);
-    expect(option(/judge \(only in B\)/).disabled).toBe(true);
+    openMenu();
+    const rows = screen.getAllByRole("option");
+    expect(rows.map((r) => r.getAttribute("aria-disabled"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+    expect(rows[1]?.textContent).toContain("not in B");
   });
 
-  test("reports the picked scorer", () => {
+  test("shows each side's mean and sample count", () => {
+    render(
+      <ScorerSelect options={options} selected="match" onSelect={vi.fn()} />
+    );
+    openMenu();
+    expect(screen.getAllByRole("option")[0]?.textContent).toMatch(
+      /0\.9 \(10\).*0\.8 \(10\)/
+    );
+  });
+
+  test("picks a comparable scorer, ignores a one-sided one", () => {
     const onSelect = vi.fn();
     render(
-      <ScorerSelect
-        options={[
-          { name: "match", inA: true, inB: true },
-          { name: "judge", inA: true, inB: true },
-        ]}
-        selected="match"
-        onSelect={onSelect}
-      />
+      <ScorerSelect options={options} selected="match" onSelect={onSelect} />
     );
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "judge" },
-    });
+    openMenu();
+    fireEvent.click(screen.getByText("f1"));
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("judge"));
+    expect(onSelect).toHaveBeenCalledWith("judge");
+  });
+
+  test("arrow keys skip one-sided scorers", () => {
+    const onSelect = vi.fn();
+    render(
+      <ScorerSelect options={options} selected="match" onSelect={onSelect} />
+    );
+    openMenu();
+    const list = screen.getByRole("listbox");
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "Enter" });
     expect(onSelect).toHaveBeenCalledWith("judge");
   });
 
