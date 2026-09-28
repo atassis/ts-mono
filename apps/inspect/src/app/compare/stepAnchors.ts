@@ -88,9 +88,10 @@ const matchScore = (x: StepAnchor, y: StepAnchor): number => {
  * maximizes the total match score of a strictly-increasing pairing.
  * Unpaired anchors on either side are the insertions/deletions.
  *
- * Tie rule (determinism): when a diagonal match ties with skipping either
- * side, the match wins; when two skips tie, advancing `a` wins over
- * advancing `b`.
+ * Tie rule: pairs land on the earliest equally good match. Backtracking
+ * from the end, a skip that keeps the score wins over the diagonal (skipping
+ * `b` first), so repeated steps pair with their first occurrence and a
+ * shared prefix stays paired step for step.
  */
 export const alignAnchors = (
   a: StepAnchor[],
@@ -120,21 +121,17 @@ export const alignAnchors = (
   let i = n;
   let j = m;
   while (i > 0 && j > 0) {
-    const anchorA = a[i - 1];
-    const anchorB = b[j - 1];
-    if (anchorA === undefined || anchorB === undefined) break;
-    const score = matchScore(anchorA, anchorB);
-    if (score > 0 && at(i, j) === at(i - 1, j - 1) + score) {
-      pairs.push({ a: i - 1, b: j - 1 });
-      i--;
+    if (at(i, j) === at(i, j - 1)) {
       j--;
       continue;
     }
     if (at(i, j) === at(i - 1, j)) {
       i--;
-    } else {
-      j--;
+      continue;
     }
+    pairs.push({ a: i - 1, b: j - 1 });
+    i--;
+    j--;
   }
   pairs.reverse();
   return pairs;

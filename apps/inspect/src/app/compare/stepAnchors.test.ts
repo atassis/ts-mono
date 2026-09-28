@@ -128,14 +128,35 @@ describe("alignAnchors", () => {
     expect(alignAnchors(a, b)).toEqual([{ a: 0, b: 0 }]);
   });
 
-  test("determinism on ties: a repeated signature in A pairs with its latest occurrence", () => {
-    // a[0] and a[1] both signature "bash:read" (args aren't part of the
-    // signature) and both score a strong match against b[0]. The DP ties at
-    // 2 either way; backtracking from the end always takes an available
-    // diagonal, so it lands on the later a index (a:1), not a:0.
-    const a = run(["cat a", "cat b"]);
-    const b = run(["cat a"]);
-    expect(alignAnchors(a, b)).toEqual([{ a: 1, b: 0 }]);
-    expect(alignAnchors(a, b)).toEqual(alignAnchors(a, b));
+  test("ties: a repeated signature pairs with its earliest occurrence", () => {
+    // a[0] and a[1] share the signature "bash:read" (args aren't part of it)
+    // and both match b[0] equally well.
+    expect(alignAnchors(run(["cat a", "cat b"]), run(["cat a"]))).toEqual([
+      { a: 0, b: 0 },
+    ]);
+    expect(alignAnchors(run(["cat a"]), run(["cat a", "cat b"]))).toEqual([
+      { a: 0, b: 0 },
+    ]);
+  });
+
+  test("shared prefix stays paired when one side wanders with the same step kind", () => {
+    // aa2 sample 17, epochs 1 and 3: the same three opening turns, then A
+    // submits while B keeps listing and searching until the limit.
+    const a = [
+      ...run(["ls -R", "ls -la"]),
+      ...anchorsOf([modelEvent([{ function: "submit", arguments: {} }])]),
+    ];
+    const b = run([
+      "ls -R",
+      "ls -la",
+      "whoami",
+      "ls /",
+      "ls /home",
+      "ls -la /root",
+    ]);
+    expect(alignAnchors(a, b)).toEqual([
+      { a: 0, b: 0 },
+      { a: 1, b: 1 },
+    ]);
   });
 });
