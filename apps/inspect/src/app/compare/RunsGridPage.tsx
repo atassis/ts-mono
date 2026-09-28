@@ -15,6 +15,7 @@ import { ViewSegmentedControl } from "../navbar/ViewSegmentedControl";
 import { logsUrl } from "../routing/url";
 
 import { alignRunsGrid, firstCommonScorerN } from "./alignRunsGrid";
+import { FrontierChart } from "./FrontierChart";
 import { groupGridBySample, sortGridSamples } from "./gridGroups";
 import { RunPicker } from "./RunPicker";
 import { sortRunsNewestFirst } from "./runPicker";
@@ -123,6 +124,7 @@ export const RunsGridPage: FC = () => {
           {addRunPicker}
         </div>
       ) : null}
+      <FrontierChart runs={runLogs} summaries={sampleLists} scorer={scorer} />
       {error ? (
         <ErrorPanel
           title="Error"
