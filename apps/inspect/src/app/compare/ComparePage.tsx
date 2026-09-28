@@ -38,6 +38,7 @@ import {
 import { ScorerSelect } from "./ScorerSelect";
 import { SideTranscript } from "./SideTranscript";
 import { alignAnchors, anchorsOf, StepAnchor } from "./stepAnchors";
+import { SyncStatus, syncStatus } from "./syncStatus";
 
 const runIdentity = (log: Log | undefined): string =>
   [log?.model, log?.task].filter(Boolean).join(" · ");
@@ -66,9 +67,10 @@ const anchorOffsets = (
   paneB: HTMLElement,
   offsetsA: (number | undefined)[],
   offsetsB: (number | undefined)[]
-): AnchorOffsets => {
+): { offsets: AnchorOffsets; kept: number[] } => {
   const a = [0];
   const b = [0];
+  const kept: number[] = [];
   offsetsA.forEach((x, i) => {
     const y = offsetsB[i];
     if (x === undefined || y === undefined) return;
@@ -76,10 +78,34 @@ const anchorOffsets = (
     if (x >= scrollMax(paneA) || y >= scrollMax(paneB)) return;
     a.push(x);
     b.push(y);
+    kept.push(i);
   });
   a.push(Math.max(scrollMax(paneA), a.at(-1) ?? 0));
   b.push(Math.max(scrollMax(paneB), b.at(-1) ?? 0));
-  return { a, b };
+  return { offsets: { a, b }, kept };
+};
+
+const sameStatus = (x: SyncStatus | undefined, y: SyncStatus): boolean =>
+  x !== undefined &&
+  x.stepA === y.stepA &&
+  x.stepB === y.stepB &&
+  x.resting === y.resting &&
+  x.extraA === y.extraA &&
+  x.extraB === y.extraB &&
+  x.tail === y.tail;
+
+const waitingText = (
+  status: SyncStatus,
+  side: "a" | "b"
+): string | undefined => {
+  if (status.resting !== side) return undefined;
+  const other = side === "a" ? "B" : "A";
+  const extraOther = side === "a" ? status.extraB : status.extraA;
+  const extraSelf = side === "a" ? status.extraA : status.extraB;
+  if (status.tail)
+    return `No matching steps past here: ${other} has ${extraOther} more, this side ${extraSelf}.`;
+  const step = side === "a" ? status.stepA : status.stepB;
+  return `Waiting at step ${step ?? 1}: ${other} has ${extraOther} step${extraOther === 1 ? "" : "s"} with no match before it.`;
 };
 
 export const ComparePage: FC = () => {
@@ -143,7 +169,9 @@ export const ComparePage: FC = () => {
 
   // Offsets are read fresh on every scroll: rows get measured and groups
   // expand or collapse, which moves the anchors.
-  const currentOffsets = (): AnchorOffsets | undefined => {
+  const [status, setStatus] = useState<SyncStatus | undefined>(undefined);
+  const currentAnchors = ():
+    { offsets: AnchorOffsets; kept: number[] } | undefined => {
     if (!paneA.current || !paneB.current) return undefined;
     return anchorOffsets(
       paneA.current,
@@ -153,11 +181,29 @@ export const ComparePage: FC = () => {
     );
   };
 
+  const report = (anchors: { offsets: AnchorOffsets; kept: number[] }) => {
+    const next = syncStatus(
+      anchorSync.position(),
+      anchors.offsets,
+      anchors.kept.flatMap((i) => pairs[i] ?? []),
+      anchorsA.length,
+      anchorsB.length
+    );
+    setStatus((prev) => (sameStatus(prev, next) ? prev : next));
+  };
+
   const toggleSync = (on: boolean): void => {
     setSyncScroll(on);
-    const offsets = currentOffsets();
-    if (on && offsets && paneA.current && paneB.current)
-      anchorSync.snap(leader.current, paneA.current, paneB.current, offsets);
+    const anchors = currentAnchors();
+    if (on && anchors && paneA.current && paneB.current) {
+      anchorSync.snap(
+        leader.current,
+        paneA.current,
+        paneB.current,
+        anchors.offsets
+      );
+      report(anchors);
+    }
   };
 
   // Wheel input moves both panes in the same frame; following the other
@@ -166,8 +212,8 @@ export const ComparePage: FC = () => {
     sides,
     "wheel",
     (event) => {
-      const offsets = currentOffsets();
-      if (!syncScroll || !offsets || !paneA.current || !paneB.current) return;
+      const anchors = currentAnchors();
+      if (!syncScroll || !anchors || !paneA.current || !paneB.current) return;
       if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       if (!(event.target instanceof Node)) return;
       event.preventDefault();
@@ -183,23 +229,25 @@ export const ComparePage: FC = () => {
         paneA.current,
         paneB.current,
         event.deltaY * unit,
-        offsets
+        anchors.offsets
       );
+      report(anchors);
     },
     { passive: false }
   );
 
   const onPaneScroll = (side: "a" | "b"): void => {
     if (!syncScroll) leader.current = side;
-    const offsets = currentOffsets();
-    if (offsets && paneA.current && paneB.current)
-      anchorSync.scrolled(
-        side,
-        paneA.current,
-        paneB.current,
-        offsets,
-        syncScroll
-      );
+    const anchors = currentAnchors();
+    if (!anchors || !paneA.current || !paneB.current) return;
+    anchorSync.scrolled(
+      side,
+      paneA.current,
+      paneB.current,
+      anchors.offsets,
+      syncScroll
+    );
+    if (syncScroll) report(anchors);
   };
 
   const allRuns = sortRunsNewestFirst(logs.data ?? []);
@@ -339,6 +387,11 @@ export const ComparePage: FC = () => {
                     value={selected.valueA}
                     scoreType={inferScoreType(selected.valueA)}
                   />
+                  {syncScroll && status?.stepA !== undefined ? (
+                    <span className={styles.stepLabel}>
+                      step {status.stepA}/{anchorsA.length}
+                    </span>
+                  ) : null}
                 </div>
                 {selected.a ? (
                   <SideTranscript
@@ -354,6 +407,11 @@ export const ComparePage: FC = () => {
                 ) : (
                   <div>not in A</div>
                 )}
+                {syncScroll && status && waitingText(status, "a") ? (
+                  <div className={styles.waiting} role="status">
+                    {waitingText(status, "a")}
+                  </div>
+                ) : null}
               </div>
               <div className={styles.side}>
                 <div className={styles.sideHeader}>
@@ -362,6 +420,11 @@ export const ComparePage: FC = () => {
                     value={selected.valueB}
                     scoreType={inferScoreType(selected.valueB)}
                   />
+                  {syncScroll && status?.stepB !== undefined ? (
+                    <span className={styles.stepLabel}>
+                      step {status.stepB}/{anchorsB.length}
+                    </span>
+                  ) : null}
                 </div>
                 {selected.b ? (
                   <SideTranscript
@@ -377,6 +440,11 @@ export const ComparePage: FC = () => {
                 ) : (
                   <div>not in B</div>
                 )}
+                {syncScroll && status && waitingText(status, "b") ? (
+                  <div className={styles.waiting} role="status">
+                    {waitingText(status, "b")}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : (

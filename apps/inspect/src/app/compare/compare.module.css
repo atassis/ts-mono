@@ -156,6 +156,7 @@
   background: var(--bs-warning-bg-subtle);
 }
 .side {
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -242,4 +243,24 @@
   color: var(--bs-link-color);
   font-size: var(--inspect-font-size-small);
   cursor: pointer;
+}
+.stepLabel {
+  margin-left: 0.5rem;
+  color: var(--bs-secondary-color);
+  font-weight: normal;
+  font-size: var(--inspect-font-size-small);
+}
+.waiting {
+  position: absolute;
+  left: 0.5rem;
+  right: 1.25rem;
+  bottom: 0.5rem;
+  z-index: 3;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  font-size: var(--inspect-font-size-small);
+  pointer-events: none;
 }

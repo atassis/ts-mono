@@ -86,5 +86,5 @@ export const makeAnchorSync = () => {
     apply(a, b, offsets);
   };
 
-  return { wheel, scrolled, snap };
+  return { wheel, scrolled, snap, position: (): Position => pos };
 };
