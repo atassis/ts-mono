@@ -3,6 +3,7 @@ import { FC, KeyboardEvent, ReactNode, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useEventListener } from "@tsmono/react/hooks";
+import { formatPrettyDecimal } from "@tsmono/util";
 
 import { EvalLogStatus } from "../../@types/extraInspect";
 import { Log } from "../../client/api/types";
@@ -61,7 +62,7 @@ const RunRow: FC<RunRowProps> = ({ log, logDir, allModels }) => {
       </span>
       {metric ? (
         <span className={styles.rowMetric}>
-          {metric.name}: {metric.value}
+          {metric.name}: {formatPrettyDecimal(metric.value)}
         </span>
       ) : null}
       {log.header?.sampleCount !== undefined ? (

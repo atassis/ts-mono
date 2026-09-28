@@ -111,7 +111,9 @@ export const ComparePage: FC = () => {
             }
           />
         </label>
-        {scorer ? <span>scorer: {scorer}</span> : null}
+        {scorer ? (
+          <span className={styles.scorer}>scorer: {scorer}</span>
+        ) : null}
         {mismatchedTasks ? (
           <span role="alert" className={styles.warning}>
             different tasks — samples won&apos;t align
@@ -140,7 +142,7 @@ export const ComparePage: FC = () => {
             onSelect={(key) => update("sample", key)}
           />
           {!a || !b ? (
-            <div>Pick a log for A and B</div>
+            <div className={styles.placeholder}>Pick a log for A and B</div>
           ) : selected ? (
             <>
               <div className={styles.side}>
@@ -185,7 +187,7 @@ export const ComparePage: FC = () => {
               </div>
             </>
           ) : (
-            <div>Select a sample</div>
+            <div className={styles.placeholder}>Select a sample</div>
           )}
         </div>
       )}
