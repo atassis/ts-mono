@@ -113,6 +113,19 @@
   font-weight: 600;
   text-align: left;
 }
+.table tbody tr {
+  position: relative;
+  cursor: pointer;
+}
+.table tbody tr:hover > td {
+  box-shadow: inset 0 0 0 100vmax rgb(127 127 127 / 12%);
+}
+.table tbody tr:has(.rowButton:focus-visible) {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+/* The id cell's button stretches over its whole row, so a click anywhere
+   on the row selects it while keyboard users still tab to one button. */
 .rowButton {
   border: none;
   padding: 0;
@@ -120,12 +133,14 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+}
+.rowButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 .rowButton:focus-visible {
-  outline: 2px solid var(--bs-primary);
-  outline-offset: 2px;
+  outline: none;
 }
 .selected {
   outline: 2px solid var(--bs-primary);
