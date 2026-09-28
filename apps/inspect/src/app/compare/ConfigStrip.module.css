@@ -1,0 +1,52 @@
+/* flex-basis: 100% forces this onto its own line inside the (flex-wrap)
+   pickers row, without the parent needing a grid-row of its own. */
+.strip {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.25rem;
+  row-gap: 0.15rem;
+  padding: 0 0.75rem 0.4rem;
+  font-size: var(--inspect-font-size-small);
+  color: var(--bs-secondary-color);
+}
+
+.line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.sep {
+  color: var(--bs-border-color);
+}
+
+.value {
+  cursor: default;
+}
+
+.hashed {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.more {
+  border: none;
+  padding: 0;
+  background: none;
+  color: var(--bs-link-color);
+  font: inherit;
+  font-size: var(--inspect-font-size-small);
+  cursor: pointer;
+}
+
+.noDiff {
+  font-style: italic;
+}

@@ -27,6 +27,7 @@ import {
 import { AnchorOffsets, makeAnchorSync } from "./anchorSync";
 import styles from "./compare.module.css";
 import { CompareTable } from "./CompareTable";
+import { ConfigStrip } from "./ConfigStrip";
 import { InfoButton } from "./InfoButton";
 import { RunPicker } from "./RunPicker";
 import {
@@ -362,6 +363,16 @@ export const ComparePage: FC = () => {
           <span role="alert" className={styles.warning}>
             same task, different task_version — samples may not align
           </span>
+        ) : null}
+        {a && b ? (
+          <ConfigStrip
+            logDir={logDir}
+            fileA={a}
+            fileB={b}
+            logA={logA}
+            logB={logB}
+            scorer={scorer}
+          />
         ) : null}
       </div>
       {error ? (
