@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { FC, useState } from "react";
+import { FC, ReactNode, useState } from "react";
 
 import { AlignedSample, parseSampleKey } from "./alignRuns";
 import { CategoryLegend } from "./CategoryLegend";
@@ -65,6 +65,8 @@ interface CompareTableProps {
   epochA?: number;
   epochB?: number;
   onPickEpoch?: (epoch: number) => void;
+  /** Rendered next to the filter, e.g. the epochs-mode A/B pick toggle. */
+  filterExtra?: ReactNode;
 }
 
 export const CompareTable: FC<CompareTableProps> = ({
@@ -75,6 +77,7 @@ export const CompareTable: FC<CompareTableProps> = ({
   epochA,
   epochB,
   onPickEpoch,
+  filterExtra,
 }) => {
   const filters = epochsMode ? kFiltersEpochs : kFilters;
   const [filter, setFilter] = useState<Filter>("all");
@@ -104,6 +107,7 @@ export const CompareTable: FC<CompareTableProps> = ({
             ))}
           </select>
         </label>
+        {filterExtra}
         <CategoryLegend />
       </div>
       <table className={styles.table}>

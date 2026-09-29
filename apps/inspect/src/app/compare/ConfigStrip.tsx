@@ -86,41 +86,41 @@ export const ConfigStrip: FC<ConfigStripProps> = ({
           </>
         ) : null}
       </span>
-      {evalA && evalB ? (
-        <span className={styles.line}>
-          <span className={styles.label}>Differs:</span>
-          {entries.length === 0 ? (
-            <span className={styles.noDiff}>No config differences</span>
-          ) : (
-            <>
-              {shown.map((entry, i) => (
-                <span key={entry.path} className={styles.value}>
-                  {i > 0 ? <span className={styles.sep}>·</span> : null}{" "}
-                  {entry.path} <DiffValueSpan value={entry.a} /> {"→"}{" "}
-                  <DiffValueSpan value={entry.b} />
-                </span>
-              ))}
-              {hidden > 0 ? (
-                <button
-                  type="button"
-                  className={styles.more}
-                  onClick={() => setExpanded(true)}
-                >
-                  +{hidden} more
-                </button>
-              ) : expanded && entries.length > COLLAPSED_COUNT ? (
-                <button
-                  type="button"
-                  className={styles.more}
-                  onClick={() => setExpanded(false)}
-                >
-                  show fewer
-                </button>
-              ) : null}
-            </>
-          )}
-        </span>
-      ) : null}
+      <span className={styles.line}>
+        <span className={styles.label}>Differs:</span>
+        {!evalA || !evalB ? (
+          <span className={styles.noDiff}>loading…</span>
+        ) : entries.length === 0 ? (
+          <span className={styles.noDiff}>No config differences</span>
+        ) : (
+          <>
+            {shown.map((entry, i) => (
+              <span key={entry.path} className={styles.value}>
+                {i > 0 ? <span className={styles.sep}>·</span> : null}{" "}
+                {entry.path} <DiffValueSpan value={entry.a} /> {"→"}{" "}
+                <DiffValueSpan value={entry.b} />
+              </span>
+            ))}
+            {hidden > 0 ? (
+              <button
+                type="button"
+                className={styles.more}
+                onClick={() => setExpanded(true)}
+              >
+                +{hidden} more
+              </button>
+            ) : expanded && entries.length > COLLAPSED_COUNT ? (
+              <button
+                type="button"
+                className={styles.more}
+                onClick={() => setExpanded(false)}
+              >
+                show fewer
+              </button>
+            ) : null}
+          </>
+        )}
+      </span>
     </div>
   );
 };

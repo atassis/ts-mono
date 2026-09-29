@@ -418,28 +418,7 @@ export const ComparePage: FC = () => {
             onSelect={(name) => update("scorer", name)}
           />
         ) : null}
-        {epochsMode && hasSelection ? (
-          <span className={styles.pickToggle}>
-            Pick epoch for
-            <button
-              type="button"
-              aria-pressed={pickSide === "a"}
-              className={styles.pickButton}
-              onClick={() => setPickSide("a")}
-            >
-              A
-            </button>
-            <button
-              type="button"
-              aria-pressed={pickSide === "b"}
-              className={styles.pickButton}
-              onClick={() => setPickSide("b")}
-            >
-              B
-            </button>
-          </span>
-        ) : null}
-        {hasSelection ? (
+        {a && b ? (
           <span className={styles.syncToggle}>
             <label className={styles.showAllTasks}>
               <input
@@ -499,6 +478,29 @@ export const ComparePage: FC = () => {
             epochA={epochPair?.epochA}
             epochB={epochPair?.epochB}
             onPickEpoch={pickEpoch}
+            filterExtra={
+              epochsMode && hasSelection ? (
+                <span className={styles.pickToggle}>
+                  Pick epoch for
+                  <button
+                    type="button"
+                    aria-pressed={pickSide === "a"}
+                    className={styles.pickButton}
+                    onClick={() => setPickSide("a")}
+                  >
+                    A
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={pickSide === "b"}
+                    className={styles.pickButton}
+                    onClick={() => setPickSide("b")}
+                  >
+                    B
+                  </button>
+                </span>
+              ) : undefined
+            }
           />
           {!a || !b ? (
             <div className={styles.placeholder}>Pick a log for A and B</div>
