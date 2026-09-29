@@ -1,3 +1,7 @@
+> **This branch (`demo/integration`) adds run comparison to the Inspect log viewer:**
+> screenshots, what it does and how to run it are in [docs/compare-runs](docs/compare-runs/README.md).
+> Everything below is the upstream ts-mono README.
+
 # ts-mono
 
 TypeScript monorepo powering the web UIs of
