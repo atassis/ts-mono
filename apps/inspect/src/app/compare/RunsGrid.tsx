@@ -195,131 +195,134 @@ export const RunsGrid: FC<RunsGridProps> = ({
           </button>
         </div>
       </div>
-      <table className={styles.grid}>
-        <thead>
-          <tr>
-            <th className={styles.corner}>Sample</th>
-            {columnOrder.map((runIndex) => {
-              const run = runs[runIndex];
-              const profile = profiles[runIndex] ?? emptyProfile;
-              return (
-                <th key={runIndex} className={styles.runHeader}>
-                  <div className={styles.runTitle}>
-                    <button
-                      type="button"
-                      className={clsx(
-                        styles.runName,
-                        runIndex === baselineIndex && styles.baseline
-                      )}
-                      aria-pressed={runIndex === baselineIndex}
-                      title={`${run?.model ?? ""}\nClick to make this the baseline`}
-                      onClick={() => onSelectBaseline(runIndex)}
-                    >
-                      {name(runIndex)}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.remove}
-                      aria-label={`Remove ${name(runIndex)}`}
-                      onClick={() => onRemoveRun(runIndex)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className={styles.runMeta}>
-                    {runIndex === baselineIndex ? (
-                      <span className={styles.baselineTag}>baseline</span>
-                    ) : null}
-                    <span className={styles.accuracy}>
-                      {accuracyText(profile)}
-                    </span>
-                    {profile.medianTokens !== undefined ||
-                    profile.medianTime !== undefined ? (
-                      <span className={styles.runStats}>
-                        {[
-                          profile.medianTokens !== undefined
-                            ? `${formatNumber(Math.round(profile.medianTokens))} tok`
-                            : undefined,
-                          profile.medianTime !== undefined
-                            ? formatTime(profile.medianTime)
-                            : undefined,
-                        ]
-                          .filter((part) => part !== undefined)
-                          .join(" · ")}
-                        {" median"}
-                      </span>
-                    ) : null}
-                  </div>
-                  <FailureBreakdownBar breakdown={profile.breakdown} />
-                </th>
-              );
-            })}
-            <th className={styles.verdictHeader}>Outcome</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map((row) => (
-            <tr
-              key={String(row.id)}
-              className={kVerdictClass[row.verdict.kind]}
-            >
-              <td>
-                <button
-                  type="button"
-                  className={styles.rowButton}
-                  onClick={() => openRow(row)}
-                >
-                  {String(row.id)}
-                </button>
-              </td>
+      <div className={styles.tableScroll}>
+        <table className={styles.grid}>
+          <thead>
+            <tr>
+              <th className={styles.corner}>Sample</th>
               {columnOrder.map((runIndex) => {
-                const cell = row.cells[runIndex];
-                if (!cell) return <td key={runIndex} className={styles.cell} />;
+                const run = runs[runIndex];
+                const profile = profiles[runIndex] ?? emptyProfile;
                 return (
-                  <td
-                    key={runIndex}
-                    className={styles.cell}
-                    style={heatmapStyle(cell.pass, cell.scored)}
-                  >
-                    <EpochStrip
-                      label={name(cell.runIndex)}
-                      cells={cell.marks}
-                      pass={cell.pass}
-                      scored={cell.scored}
-                      selectedKey={undefined}
-                      onSelect={(key) => {
-                        const other =
-                          cell.runIndex === baselineIndex
-                            ? compareTarget(row, baselineIndex)
-                            : cell.runIndex;
-                        if (other !== undefined) onOpen(other, key);
-                      }}
-                    />
-                  </td>
+                  <th key={runIndex} className={styles.runHeader}>
+                    <div className={styles.runTitle}>
+                      <button
+                        type="button"
+                        className={clsx(
+                          styles.runName,
+                          runIndex === baselineIndex && styles.baseline
+                        )}
+                        aria-pressed={runIndex === baselineIndex}
+                        title={`${run?.model ?? ""}\nClick to make this the baseline`}
+                        onClick={() => onSelectBaseline(runIndex)}
+                      >
+                        {name(runIndex)}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.remove}
+                        aria-label={`Remove ${name(runIndex)}`}
+                        onClick={() => onRemoveRun(runIndex)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className={styles.runMeta}>
+                      {runIndex === baselineIndex ? (
+                        <span className={styles.baselineTag}>baseline</span>
+                      ) : null}
+                      <span className={styles.accuracy}>
+                        {accuracyText(profile)}
+                      </span>
+                      {profile.medianTokens !== undefined ||
+                      profile.medianTime !== undefined ? (
+                        <span className={styles.runStats}>
+                          {[
+                            profile.medianTokens !== undefined
+                              ? `${formatNumber(Math.round(profile.medianTokens))} tok`
+                              : undefined,
+                            profile.medianTime !== undefined
+                              ? formatTime(profile.medianTime)
+                              : undefined,
+                          ]
+                            .filter((part) => part !== undefined)
+                            .join(" · ")}
+                          {" median"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <FailureBreakdownBar breakdown={profile.breakdown} />
+                  </th>
                 );
               })}
-              <td className={styles.verdict}>
-                {verdictText(row.verdict, name)}
-              </td>
+              <th className={styles.verdictHeader}>Outcome</th>
             </tr>
-          ))}
-          {agreeing.length > 0 ? (
-            <tr>
-              <td colSpan={runs.length + 2} className={styles.fold}>
-                <button
-                  type="button"
-                  className={styles.foldButton}
-                  onClick={() => setShowAgreeing((v) => !v)}
-                >
-                  {showAgreeing
-                    ? `Hide the ${agreeing.length} samples every run passes`
-                    : `${agreeing.length} more samples: every run passes every epoch (show)`}
-                </button>
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {visible.map((row) => (
+              <tr
+                key={String(row.id)}
+                className={kVerdictClass[row.verdict.kind]}
+              >
+                <td>
+                  <button
+                    type="button"
+                    className={styles.rowButton}
+                    onClick={() => openRow(row)}
+                  >
+                    {String(row.id)}
+                  </button>
+                </td>
+                {columnOrder.map((runIndex) => {
+                  const cell = row.cells[runIndex];
+                  if (!cell)
+                    return <td key={runIndex} className={styles.cell} />;
+                  return (
+                    <td
+                      key={runIndex}
+                      className={styles.cell}
+                      style={heatmapStyle(cell.pass, cell.scored)}
+                    >
+                      <EpochStrip
+                        label={name(cell.runIndex)}
+                        cells={cell.marks}
+                        pass={cell.pass}
+                        scored={cell.scored}
+                        selectedKey={undefined}
+                        onSelect={(key) => {
+                          const other =
+                            cell.runIndex === baselineIndex
+                              ? compareTarget(row, baselineIndex)
+                              : cell.runIndex;
+                          if (other !== undefined) onOpen(other, key);
+                        }}
+                      />
+                    </td>
+                  );
+                })}
+                <td className={styles.verdict}>
+                  {verdictText(row.verdict, name)}
+                </td>
+              </tr>
+            ))}
+            {agreeing.length > 0 ? (
+              <tr>
+                <td colSpan={runs.length + 2} className={styles.fold}>
+                  <button
+                    type="button"
+                    className={styles.foldButton}
+                    onClick={() => setShowAgreeing((v) => !v)}
+                  >
+                    {showAgreeing
+                      ? `Hide the ${agreeing.length} samples every run passes`
+                      : `${agreeing.length} more samples: every run passes every epoch (show)`}
+                  </button>
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -25,8 +25,8 @@ interface FrontierChartProps {
   scorer: string | undefined;
 }
 
-const kWidth = 640;
-const kHeight = 220;
+const kWidth = 960;
+const kHeight = 260;
 const kMargin = { top: 14, right: 20, bottom: 26, left: 46 };
 
 const ciHalfWidth = (point: FrontierPoint): number =>
